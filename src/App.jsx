@@ -24,6 +24,12 @@ const statusMeta = {
   culture: { label: "文化适配", Icon: UserFocus },
 };
 
+const localizationMeta = [
+  ["naturalness", "自然度"],
+  ["politeness", "礼貌度"],
+  ["businessFit", "商务适配"],
+];
+
 function clamp(value) {
   return Math.max(0, Math.min(100, value));
 }
@@ -62,6 +68,52 @@ function ModeToggle({ mode, onChange }) {
       <span>{isAi ? "AI 即兴" : "标准剧情"}</span>
       <i aria-hidden="true" />
     </button>
+  );
+}
+
+function providerLabel(provider) {
+  const labels = {
+    "deepseek+hkchat": "DeepSeek + 港话通",
+    "deepseek+fallback": "DeepSeek + 本地纠偏",
+    "fallback+hkchat": "标准剧情 + 港话通",
+    fallback: "离线保底",
+    story: "标准剧情",
+  };
+  return labels[provider] ?? provider;
+}
+
+function buildLocalFeedback(option) {
+  const toScore = (value) => Math.max(0, Math.min(10, 5 + Math.round(value / 2)));
+  return {
+    naturalness: toScore(option.delta.language),
+    politeness: toScore(option.delta.culture),
+    businessFit: toScore(option.delta.professionalism),
+    hkRewrite: option.text,
+    comment: option.feedback,
+    source: "fallback",
+  };
+}
+
+function LocalizationReview({ feedback }) {
+  return (
+    <section className="localization-review" aria-label="香港商务语境评分">
+      <div className="localization-scores">
+        {localizationMeta.map(([key, label]) => (
+          <div key={key}>
+            <span>{label}</span>
+            <strong>{feedback[key]}</strong>
+            <i aria-hidden="true">
+              <b style={{ width: `${feedback[key] * 10}%` }} />
+            </i>
+          </div>
+        ))}
+      </div>
+      <div className="rewrite-row">
+        <span>更港式的讲法</span>
+        <strong>{feedback.hkRewrite}</strong>
+      </div>
+      <p>{feedback.comment}</p>
+    </section>
   );
 }
 
@@ -179,6 +231,7 @@ export function App() {
       npcLineZh: option.responseZh,
       coachFeedback: option.feedback,
       delta: option.delta,
+      localization: buildLocalFeedback(option),
     };
 
     let result = baseResult;
@@ -211,10 +264,10 @@ export function App() {
     ]);
     setIsLoading(false);
     setLiveMessage(
-      provider === "deepseek"
-        ? "AI 即兴点评已生成"
-        : provider === "fallback"
-          ? "网络不可用，已无缝切换标准剧情"
+      provider === "deepseek+hkchat"
+        ? "双模型剧情与港式纠偏已生成"
+        : provider.includes("fallback")
+          ? "部分服务不可用，已启用可靠降级"
           : "选择结果已生成",
     );
   }
@@ -335,9 +388,12 @@ export function App() {
           <Brain weight="duotone" aria-hidden="true" />
           <strong>{resolvedTurn ? "教练复盘" : "教练提示"}</strong>
           <span>{resolvedTurn?.coachFeedback ?? scene.coachHint}</span>
-          {resolvedTurn?.provider === "deepseek" && <em>DeepSeek</em>}
-          {resolvedTurn?.provider === "fallback" && <em>已降级</em>}
+          {resolvedTurn?.provider && <em>{providerLabel(resolvedTurn.provider)}</em>}
         </div>
+
+        {resolvedTurn?.localization && (
+          <LocalizationReview feedback={resolvedTurn.localization} />
+        )}
 
         <div className="choice-stack">
           {scene.options.map((option, index) => (
@@ -367,7 +423,7 @@ export function App() {
         )}
         {isLoading && (
           <div className="loading-row">
-            <i /> 正在推演对方的真实反应…
+            <i /> DeepSeek 推演角色反应，港话通检查港式表达…
           </div>
         )}
       </section>

@@ -326,6 +326,75 @@ button:focus-visible {
   background: rgba(38, 130, 145, 0.12);
 }
 
+.localization-review {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.4fr);
+  gap: 10px 20px;
+  margin: -4px 0 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(106, 223, 231, 0.24);
+  background: rgba(24, 80, 91, 0.14);
+}
+
+.localization-scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  grid-row: 1 / span 2;
+}
+
+.localization-scores > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: center;
+  gap: 5px 8px;
+}
+
+.localization-scores span,
+.rewrite-row span {
+  color: var(--paper-500);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.localization-scores strong {
+  color: var(--cyan-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.localization-scores i {
+  grid-column: 1 / -1;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.localization-scores b {
+  display: block;
+  height: 100%;
+  background: var(--cyan-400);
+}
+
+.rewrite-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.rewrite-row strong {
+  color: var(--paper-100);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.localization-review > p {
+  margin: 0;
+  color: var(--paper-500);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .choice-stack {
   display: grid;
   gap: 10px;
@@ -659,6 +728,14 @@ button:focus-visible {
   .dialogue-console {
     min-height: 48dvh;
   }
+
+  .localization-review {
+    grid-template-columns: 1fr;
+  }
+
+  .localization-scores {
+    grid-row: auto;
+  }
 }
 
 @media (max-width: 640px) {
@@ -779,6 +856,24 @@ button:focus-visible {
     flex-basis: calc(100% - 64px);
     font-size: 12px;
     line-height: 1.55;
+  }
+
+  .localization-review {
+    padding: 10px;
+  }
+
+  .localization-scores {
+    gap: 8px;
+  }
+
+  .localization-scores span,
+  .rewrite-row span {
+    font-size: 10px;
+  }
+
+  .rewrite-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .choice-button {

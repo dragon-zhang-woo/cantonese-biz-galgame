@@ -29,9 +29,12 @@
 - 四维状态：信任、专业度、粤语自然度、文化适配；
 - 两种运行方式：
   - **标准剧情**：完全离线、固定且可重复；
-  - **AI 即兴**：DeepSeek 生成受约束的角色反应与教练点评；
+  - **AI 即兴**：DeepSeek 生成受约束的角色反应，港话通负责香港商务
+    语境纠偏；
+- 本地化复盘：自然度、礼貌度、商务适配、港式改写与解释；
 - 浏览器粤语朗读与术语提示；
 - 模型、余额、网络或 JSON 失败时自动回退，不中断剧情；
+- 相同回合短期缓存，重复演示无需再次等待模型；
 - 结局页与个人学习画像；
 - 桌面与 390px 手机布局。
 
@@ -57,9 +60,14 @@ React/Vite 视觉小说 UI
                                   │
                     ┌─────────────┴─────────────┐
                     │                           │
-              DeepSeek Provider           Mock Provider
-                    │                           │
-                结构化 JSON              静态可靠回退
+              DeepSeek Provider        HKChat Provider
+                 角色反应                本地化纠偏
+                    └──────────┬──────────┘
+                         独立失败降级
+                              │
+                    结构化校验 + 内存缓存
+                              │
+                         静态可靠回退
 ```
 
 FastAPI 会验证模型输出、限制每个分数变化范围，并在异常时返回预写
@@ -93,9 +101,12 @@ copy .env.example .env
 在 `backend/.env` 中设置：
 
 ```env
-AI_PROVIDER=deepseek
+AI_SCENE_PROVIDER=deepseek
+AI_LOCALIZE_PROVIDER=hkchat
 DEEPSEEK_API_KEY=your_key_here
-DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_MODEL=deepseek-v4-pro
+HKCHAT_API_KEY=your_key_here
+HKCHAT_MODEL=t2_hkgai-v3_fp8_1m_e7
 ```
 
 然后启动：

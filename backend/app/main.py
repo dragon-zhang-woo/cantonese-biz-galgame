@@ -26,7 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def health() -> dict[str, str]:
         return {
             "status": "ok",
-            "provider": "deepseek" if engine.deepseek else "mock",
+            "provider": engine.provider_name,
         }
 
     def get_engine() -> GameEngine:

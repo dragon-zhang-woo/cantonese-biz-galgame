@@ -59,5 +59,27 @@ class ModelTurn(BaseModel):
         return " ".join(value.split())
 
 
+class LocalizationFeedback(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    naturalness: int = Field(ge=0, le=10)
+    politeness: int = Field(ge=0, le=10)
+    business_fit: int = Field(ge=0, le=10)
+    hk_rewrite: str = Field(min_length=1, max_length=320)
+    comment: str = Field(min_length=1, max_length=420)
+    source: Literal["hkchat", "fallback"]
+
+    @field_validator("hk_rewrite", "comment")
+    @classmethod
+    def normalize_feedback_text(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
 class TurnResponse(ModelTurn):
-    provider: Literal["deepseek", "mock", "fallback"]
+    provider: Literal[
+        "deepseek+hkchat",
+        "deepseek+fallback",
+        "fallback+hkchat",
+        "fallback",
+    ]
+    localization: LocalizationFeedback
