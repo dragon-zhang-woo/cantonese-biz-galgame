@@ -23,7 +23,7 @@
 
 ## Solution
 
-一个三幕式 AI Galgame：
+一个五幕式 AI Galgame：
 
 1. 玩家进入香港本地商务场景；
 2. 对沟通压力做选择；
@@ -41,7 +41,8 @@
 
 ## AI implementation
 
-- DeepSeek V4 Flash：结构化 NPC 反应与语境点评；
+- DeepSeek V4 Pro：结构化 NPC 反应与受约束的分数变化；
+- HKGAI V3（港话通）：香港商务粤语自然度、礼貌度与语境纠偏；
 - JSON Output + Pydantic：字段和分数边界验证；
 - Provider abstraction：可插入 HKGAI Studio 文本/语音模型；
 - browser SpeechSynthesis：可选粤语朗读；
@@ -49,7 +50,7 @@
 
 ## Demo completeness
 
-- Three original scenes and characters;
+- Five original scenes and fictional characters;
 - one complete start-to-ending path;
 - responsive web UI;
 - automated frontend/backend tests;

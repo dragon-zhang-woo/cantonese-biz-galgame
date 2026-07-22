@@ -4,7 +4,7 @@
 
 The model performs a character; it does not direct the application.
 
-The frontend owns the three-act story graph and the offline fallback payload.
+The frontend owns the five-act story graph and the offline fallback payload.
 DeepSeek performs the immediate NPC reaction and bounded score delta. HKChat
 independently reviews the player's wording for naturalness, politeness and
 Hong Kong business fit. Neither provider can choose a different next node.

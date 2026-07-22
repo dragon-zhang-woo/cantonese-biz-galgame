@@ -124,16 +124,16 @@ function IntroModal({ onStart }) {
         <div className="intro-kicker">CANTONESEBIZ // CASE 01</div>
         <h1 id="intro-title">唔係背生词，<br />係学识点样倾。</h1>
         <p>
-          你刚加入一家香港咨询公司。三次职场对话，将决定客户是否愿意把项目交给你。
+          你刚加入一家香港咨询公司。五次职场对话，将决定客户是否愿意把项目交给你。
         </p>
         <div className="intro-rule">
           <Brain weight="duotone" aria-hidden="true" />
           <span>AI 分析语境与关系后果；剧情控制始终由规则引擎掌握。</span>
         </div>
         <button className="primary-cta" type="button" onClick={onStart}>
-          进入中环初会 <ArrowRight weight="bold" aria-hidden="true" />
+          从金钟入职 <ArrowRight weight="bold" aria-hidden="true" />
         </button>
-        <small>约 3 分钟 · 支持完全离线演示</small>
+        <small>约 5 分钟 · 支持完全离线演示</small>
       </section>
     </div>
   );

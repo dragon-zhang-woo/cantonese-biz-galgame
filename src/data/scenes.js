@@ -10,9 +10,50 @@ const asset = (fileName) =>
 
 export const scenes = [
   {
-    id: "central-client-brief",
+    id: "admiralty-onboarding",
     stage: 1,
-    chapter: "第一章 · 中环初会",
+    chapter: "第一章 · 入职报到",
+    location: "金钟 · 公司前台",
+    speaker: "Vincent",
+    role: "直属经理",
+    background: asset("scene-onboarding-vincent.png"),
+    imageAlt: "清晨的香港金钟办公室前台，一位男经理拿着文件站在窗边",
+    npcLineYue: "朝早十点同客户开会，你准备好点样介绍自己未？",
+    npcLineZh: "上午十点要见客户，你准备好怎样介绍自己了吗？",
+    coachHint: "客户要快速判断你能带来什么价值。别从履历背起，先讲你在这次合作中负责什么。",
+    glossary: {
+      term: "点样介绍自己",
+      explanation:
+        "香港商务自我介绍通常重视角色、责任和能解决的问题。资历可以补充，但不应抢走合作价值的主线。",
+    },
+    options: [
+      {
+        id: "role-and-value",
+        text: "我会用半分钟讲清楚自己负责边部分，同埋可以点样帮到客户。",
+        responseYue: "啱，先俾人知你做咩、点样帮到佢，经历之后先补充。",
+        responseZh: "对，先让对方知道你负责什么、能怎样帮他，经历可以随后补充。",
+        feedback:
+          "你把自我介绍变成合作定位，客户能立即理解你的责任和价值。",
+        learningPoint: "商务自我介绍先交代角色与价值，再用经历支持可信度。",
+        delta: { trust: 4, professionalism: 5, language: 3, culture: 4 },
+      },
+      {
+        id: "resume-first",
+        text: "我先由毕业学校同过往经历开始讲，等佢哋了解我。",
+        responseYue: "可以提，但唔好讲到似见工。客户最想知你今次帮到佢啲咩。",
+        responseZh: "可以提，但别说得像求职面试。客户最想知道你这次能帮他什么。",
+        feedback:
+          "履历能建立可信度，却没有直接回答你在当前项目中的作用。",
+        learningPoint: "避免把客户会面变成履历陈述；先回应对方眼前的合作需要。",
+        delta: { trust: 0, professionalism: -1, language: 2, culture: -1 },
+      },
+    ],
+    nextSceneId: "central-client-brief",
+  },
+  {
+    id: "central-client-brief",
+    stage: 2,
+    chapter: "第二章 · 中环初会",
     location: "中环 · 客户会议室",
     speaker: "陈嘉敏",
     role: "区域业务总监",
@@ -52,8 +93,8 @@ export const scenes = [
   },
   {
     id: "pantry-colleague-signal",
-    stage: 2,
-    chapter: "第二章 · 茶水间试探",
+    stage: 3,
+    chapter: "第三章 · 茶水间试探",
     location: "金钟 · 公司茶水间",
     speaker: "阿朗",
     role: "本地项目经理",
@@ -89,12 +130,53 @@ export const scenes = [
         delta: { trust: -1, professionalism: -2, language: 3, culture: -3 },
       },
     ],
+    nextSceneId: "client-crisis-repair",
+  },
+  {
+    id: "client-crisis-repair",
+    stage: 4,
+    chapter: "第四章 · 危机补救",
+    location: "中环 · 项目战情室",
+    speaker: "陈嘉敏",
+    role: "区域业务总监",
+    background: asset("scene-crisis-client.png"),
+    imageAlt: "雨夜的香港中环会议室，女客户拿着手机站在数据文件与电脑旁",
+    npcLineYue: "客户话试点数据同你哋上星期讲嘅唔一致，今晚点交代？",
+    npcLineZh: "客户说试点数据与你们上周的说法不一致，今晚怎样交代？",
+    coachHint: "危机时先接责任、再界定事实，最后给明确的更新时间。不要在核对前甩锅。",
+    glossary: {
+      term: "今晚点交代",
+      explanation:
+        "这里不是只要一句解释，而是要求你给出可验证的处理动作、负责人和时间点。",
+    },
+    options: [
+      {
+        id: "verify-and-repair",
+        text: "我会先确认边组数字有出入，今晚九点前交核对结果同补救方案。",
+        responseYue: "好，九点前俾我一页结论。边个负责、影响几大，一次过讲清楚。",
+        responseZh: "好，九点前给我一页结论。负责人是谁、影响多大，一次说清楚。",
+        feedback:
+          "你没有在事实未明时乱认结论，却主动承担了核对与补救的交付责任。",
+        learningPoint: "危机沟通用“事实范围、负责人、更新时间”建立确定感。",
+        delta: { trust: 6, professionalism: 6, language: 3, culture: 4 },
+      },
+      {
+        id: "blame-the-source",
+        text: "数据係客户嗰边提供，我哋照用啫，应该唔关我哋事。",
+        responseYue: "而家唔係分边个错。你哋交咗份报告，就要先帮手查清楚。",
+        responseZh: "现在不是先分谁对谁错。你们交了报告，就要先协助查清楚。",
+        feedback:
+          "你过早划清责任，让客户感觉团队只保护自己，没有保护共同结果。",
+        learningPoint: "先修复共同结果，再讨论责任归属；甩锅会快速消耗信任。",
+        delta: { trust: -6, professionalism: -5, language: 2, culture: -4 },
+      },
+    ],
     nextSceneId: "manager-lunch-close",
   },
   {
     id: "manager-lunch-close",
-    stage: 3,
-    chapter: "第三章 · 午市收口",
+    stage: 5,
+    chapter: "第五章 · 午市收口",
     location: "湾仔 · 老字号茶餐厅",
     speaker: "何太",
     role: "你的直属经理",

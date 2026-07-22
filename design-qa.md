@@ -10,13 +10,15 @@
   `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-mobile.png`
 - Ending-state screenshot:
   `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-ending.png`
+- Crisis-scene screenshot:
+  `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-crisis.png`
 - Full-view comparison:
   `D:\火鸟黑客松竞赛\粤商通 Galgame\design-qa-comparison.png`
 - Focused dialogue-region comparison:
   `D:\火鸟黑客松竞赛\粤商通 Galgame\design-qa-focused.png`
 - Viewports: desktop 1440 × 1024; mobile 390 × 844.
 - State: first playable scene, two response choices available, standard-story
-  mode. The ending capture follows the preferred choice through all three acts.
+  mode. The ending capture follows the preferred choice through all five acts.
 
 ## Findings
 
@@ -34,7 +36,7 @@ No actionable P0, P1, or P2 mismatches remain.
 - Colors and visual tokens: the implementation retains the source's deep navy,
   warm gold, muted violet and cyan status accent. Borders, opacity and contrast
   preserve hierarchy without introducing an unrelated palette.
-- Image quality and asset fidelity: all three scenes use dedicated 1536 × 1024
+- Image quality and asset fidelity: all five scenes use dedicated 1536 × 1024
   raster artwork with a consistent cinematic Hong Kong business-galgame art
   direction. The first scene's subject, skyline, crop and warm/cool balance
   match the selected source. No image slot is represented with CSS art,
@@ -82,6 +84,21 @@ No actionable P0, P1, or P2 mismatches remain.
 - The exact 390 × 844 capture reported `window.innerWidth === 390`, rendered
   both choices, and had no horizontal overflow.
 
+### Iteration 3 — five-act expansion and curved material language
+
+- Added original Admiralty onboarding and Central crisis-response artwork while
+  preserving the right-weighted character composition and lower-third safe area.
+- Expanded the deterministic story graph to five linked scenes and completed the
+  preferred path in Chrome. The ending contained exactly five learning points.
+- Reworked the dialogue console, coaching strip, localization review, choices,
+  score panel and modals with restrained 12–28px curves, layered translucency,
+  subtle edge highlights and low-noise depth. The result remains cinematic rather
+  than becoming a set of oversized consumer-app bubbles.
+- Desktop verification at 1440 × 1024 showed both choices and the continue action
+  inside the viewport with no internal overflow in the tested states.
+- Mobile verification at 390 × 844 rendered a 22px dialogue curve, both 321px-wide
+  choices and no horizontal overflow (`scrollWidth <= innerWidth`).
+
 ## Follow-up polish
 
 - [P3] The source uses three compact status rows while the product uses four
@@ -94,7 +111,7 @@ No actionable P0, P1, or P2 mismatches remain.
 - [x] Source and implementation compared side by side at the same viewport.
 - [x] Important dialogue region compared at readable scale.
 - [x] P1 layout mismatch fixed and recaptured.
-- [x] Three-scene primary interaction completed in a real Chromium renderer.
+- [x] Five-scene primary interaction completed in a real Chromium renderer.
 - [x] 390 × 844 responsive state verified.
 - [x] Browser console checked with zero errors.
 - [x] Lint, unit tests, production build and API tests prepared for final run.
