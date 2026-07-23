@@ -26,6 +26,12 @@ export const scenes = [
       explanation:
         "香港商务自我介绍通常重视角色、责任和能解决的问题。资历可以补充，但不应抢走合作价值的主线。",
     },
+    freeformFallback: {
+      responseYue: "收到。等阵见客户时，记住讲清楚你负责边部分。",
+      responseZh: "收到。稍后见客户时，记得讲清楚你负责哪一部分。",
+      feedback: "AI 暂时未回应；本轮以中性结果继续，不对你的自由作答作武断评分。",
+      learningPoint: "自由作答在模型不可用时以中性结果继续，避免把保底文案当成真实评分。",
+    },
     options: [
       {
         id: "role-and-value",
@@ -66,6 +72,12 @@ export const scenes = [
       term: "点解要而家就转",
       explanation:
         "表面问时机，实际在问“延后有什么损失”。香港商务沟通常先接住顾虑，再给可验证的下一步。",
+    },
+    freeformFallback: {
+      responseYue: "我收到你个讲法，不过想再听具体依据。",
+      responseZh: "我明白你的说法，不过还想听听具体依据。",
+      feedback: "AI 暂时未回应；本轮以中性结果继续，不对你的自由作答作武断评分。",
+      learningPoint: "自由作答在模型不可用时以中性结果继续，避免把保底文案当成真实评分。",
     },
     options: [
       {
@@ -108,6 +120,12 @@ export const scenes = [
       explanation:
         "常见的缓冲表达，可能表示暂不承诺、资料不足或希望对方主动跟进。需结合关系和上下文判断。",
     },
+    freeformFallback: {
+      responseYue: "有道理，不过最好同陈总确认下先。",
+      responseZh: "有道理，不过最好先和陈总确认一下。",
+      feedback: "AI 暂时未回应；本轮以中性结果继续，不对你的自由作答作武断评分。",
+      learningPoint: "自由作答在模型不可用时以中性结果继续，避免把保底文案当成真实评分。",
+    },
     options: [
       {
         id: "read-the-gap",
@@ -149,6 +167,12 @@ export const scenes = [
       explanation:
         "这里不是只要一句解释，而是要求你给出可验证的处理动作、负责人和时间点。",
     },
+    freeformFallback: {
+      responseYue: "好，先照你讲嘅方向处理，记住尽快更新。",
+      responseZh: "好，先按你说的方向处理，记得尽快更新。",
+      feedback: "AI 暂时未回应；本轮以中性结果继续，不对你的自由作答作武断评分。",
+      learningPoint: "自由作答在模型不可用时以中性结果继续，避免把保底文案当成真实评分。",
+    },
     options: [
       {
         id: "verify-and-repair",
@@ -189,6 +213,12 @@ export const scenes = [
       term: "收口",
       explanation:
         "把讨论收束到明确决定、责任人和下一步。在谈判中要避免只得到一句模糊的“可以试”。",
+    },
+    freeformFallback: {
+      responseYue: "收到，我哋将下一步写清楚再确认。",
+      responseZh: "收到，我们把下一步写清楚后再确认。",
+      feedback: "AI 暂时未回应；本轮以中性结果继续，不对你的自由作答作武断评分。",
+      learningPoint: "自由作答在模型不可用时以中性结果继续，避免把保底文案当成真实评分。",
     },
     options: [
       {

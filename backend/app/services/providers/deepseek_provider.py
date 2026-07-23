@@ -30,8 +30,12 @@ Requirements:
 - Coach feedback must distinguish linguistic correctness from social effect.
 - Do not introduce legal, financial or medical advice.
 - Each delta must be an integer from -6 to 6.
-- Preserve the supplied outcome direction; do not reverse a clearly positive
-  fallback into a negative result or vice versa.
+- When choice_id is not "custom-response", preserve the supplied outcome
+  direction; do not reverse a clearly positive fallback into a negative result
+  or vice versa.
+- When choice_id is "custom-response", assess the player's wording and intent
+  independently. The fallback is deliberately neutral and must not constrain
+  your score direction.
 
 JSON schema:
 {

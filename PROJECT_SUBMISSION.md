@@ -26,7 +26,7 @@
 一个五幕式 AI Galgame：
 
 1. 玩家进入香港本地商务场景；
-2. 对沟通压力做选择；
+2. 从策略选项中选择，或直接写出自己的回应；
 3. NPC 根据人物利益与玩家状态即时回应；
 4. 程序更新关系数值；
 5. AI 教练解释社会语用后果；
@@ -36,6 +36,8 @@
 
 - 用“关系后果”而不是背词驱动语言学习；
 - 把 Galgame 的角色记忆与商务情境训练结合；
+- 允许评委现场自由作答，再由两个模型分别负责剧情反应和香港语境
+  纠偏；
 - 将可生成内容限制在角色表演和教练解释，故事图保持确定；
 - AI / 离线双模式，现场可稳定运行。
 
@@ -44,6 +46,7 @@
 - DeepSeek V4 Pro：结构化 NPC 反应与受约束的分数变化；
 - HKGAI V3（港话通）：香港商务粤语自然度、礼貌度与语境纠偏；
 - JSON Output + Pydantic：字段和分数边界验证；
+- 语义防线：拒绝把原问题重复为 NPC 新反应的异常输出；
 - Provider abstraction：可插入 HKGAI Studio 文本/语音模型；
 - browser SpeechSynthesis：可选粤语朗读；
 - Mock Provider：API、额度或网络失败时无缝降级。
@@ -52,6 +55,8 @@
 
 - Five original scenes and fictional characters;
 - one complete start-to-ending path;
+- constrained free-form answers plus a deterministic offline path;
+- local checkpoint restore without storing raw player wording;
 - responsive web UI;
 - automated frontend/backend tests;
 - Docker deployment;

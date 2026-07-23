@@ -67,6 +67,25 @@ def test_rejects_out_of_bounds_model_delta() -> None:
         TurnRequest.model_validate(payload)
 
 
+def test_accepts_bounded_custom_response_with_neutral_fallback() -> None:
+    payload = sample_request().model_dump()
+    payload["player_action"] = {
+        "choice_id": "custom-response",
+        "text": "我想先确认风险，再同你定一个两星期试点。",
+    }
+    payload["fallback"]["delta"] = {
+        "trust": 0,
+        "professionalism": 0,
+        "language": 0,
+        "culture": 0,
+    }
+
+    request = TurnRequest.model_validate(payload)
+
+    assert request.player_action.choice_id == "custom-response"
+    assert request.fallback.delta.trust == 0
+
+
 def test_configures_dual_model_pipeline() -> None:
     engine = GameEngine(
         Settings(
@@ -146,3 +165,31 @@ async def test_repeated_turn_uses_cache() -> None:
     assert first == second
     assert scene_provider.calls == 1
     assert localization_provider.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_repeated_incoming_npc_line_falls_back_safely() -> None:
+    class RepeatingSceneProvider:
+        async def generate_turn(self, request: TurnRequest) -> ModelTurn:
+            return ModelTurn(
+                npc_line_yue=request.scene.npc_line_yue,
+                npc_line_zh="我听到你的回答。",
+                coach_feedback="模型错误地重复了原问题。",
+                delta={
+                    "trust": 3,
+                    "professionalism": 2,
+                    "language": 1,
+                    "culture": 1,
+                },
+            )
+
+    engine = GameEngine(
+        Settings(ai_scene_provider="mock", ai_localize_provider="mock")
+    )
+    engine.scene_provider = RepeatingSceneProvider()
+
+    response = await engine.play_turn(sample_request())
+
+    assert response.provider == "fallback"
+    assert response.npc_line_yue == sample_request().fallback.npc_line_yue
+    assert response.delta == sample_request().fallback.delta

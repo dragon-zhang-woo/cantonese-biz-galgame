@@ -61,7 +61,10 @@ class GameEngine:
         if self.scene_provider is None:
             return await self.mock.generate_turn(request), "fallback"
         try:
-            return await self.scene_provider.generate_turn(request), "deepseek"
+            result = await self.scene_provider.generate_turn(request)
+            if self._repeats_scene_prompt(request, result):
+                raise ValueError("AI scene provider repeated the incoming NPC line")
+            return result, "deepseek"
         except Exception as exc:
             logger.warning(
                 "AI scene provider failed (%s): %s",
@@ -69,6 +72,15 @@ class GameEngine:
                 exc,
             )
             return await self.mock.generate_turn(request), "fallback"
+
+    @staticmethod
+    def _repeats_scene_prompt(request: TurnRequest, result: ModelTurn) -> bool:
+        def normalize(value: str) -> str:
+            return "".join(value.split()).strip("「」『』\"'，。！？!?、")
+
+        incoming_yue = normalize(request.scene.npc_line_yue)
+        incoming_zh = normalize(request.scene.npc_line_zh)
+        return normalize(result.npc_line_yue) in {incoming_yue, incoming_zh}
 
     async def _localization_result(
         self, request: TurnRequest
