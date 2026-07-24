@@ -168,6 +168,7 @@ await evaluate(`document.querySelector(".mode-toggle")?.click()`);
 await delay(100);
 
 const visited = [];
+let desktopCinematic;
 for (let act = 0; act < 5; act += 1) {
   visited.push(
     await evaluate(`document.querySelector(".speaker-name")?.textContent`),
@@ -182,7 +183,40 @@ for (let act = 0; act < 5; act += 1) {
     await delay(100);
   }
   await evaluate(`document.querySelector(".continue-button")?.click()`);
-  await delay(450);
+  await delay(120);
+  if (act === 0) {
+    desktopCinematic = await screenshot("qa-cinematic.png");
+  }
+
+  for (let shot = 0; shot < 5; shot += 1) {
+    const advanceLabel = await evaluate(
+      `document.querySelector(".aftermath-nav--primary")?.textContent.trim()`,
+    );
+    if (!advanceLabel) {
+      throw new Error(`Act ${act + 1} did not open its consequence sequence.`);
+    }
+    await evaluate(
+      `document.querySelector(".aftermath-nav--primary")?.click()`,
+    );
+    await delay(80);
+    if (
+      advanceLabel.includes("进入下一幕") ||
+      advanceLabel.includes("查看学习报告")
+    ) {
+      break;
+    }
+  }
+
+  if (act < 4) {
+    const preludeVisible = await evaluate(
+      `Boolean(document.querySelector(".prelude-cta"))`,
+    );
+    if (!preludeVisible) {
+      throw new Error(`Act ${act + 2} did not open its establishing shot.`);
+    }
+    await evaluate(`document.querySelector(".prelude-cta")?.click()`);
+    await delay(80);
+  }
 }
 
 const ending = await evaluate(`({
@@ -206,6 +240,39 @@ const mobile = await evaluate(`({
   composerWidth: Math.round(document.querySelector(".free-response-form")?.getBoundingClientRect().width ?? 0)
 })`);
 const mobileGameplay = await screenshot("qa-mobile.png");
+await evaluate(`document.querySelector(".mode-toggle")?.click()`);
+await delay(80);
+
+await evaluate(`document.querySelector('[aria-label="查看人物档案"]')?.click()`);
+await delay(100);
+const mobileDossier = await evaluate(`({
+  visible: Boolean(document.querySelector(".dossier-shell")),
+  width: Math.round(document.querySelector(".dossier-shell")?.getBoundingClientRect().width ?? 0),
+  imageLoaded: (document.querySelector(".dossier-content img")?.naturalWidth ?? 0) > 0,
+  tabs: document.querySelectorAll(".dossier-tabs button").length,
+  bodyLocked: document.body.style.overflow === "hidden"
+})`);
+const mobileDossierShot = await screenshot("qa-mobile-dossier.png");
+await evaluate(`document.querySelector('[aria-label="关闭人物档案"]')?.click()`);
+await delay(80);
+
+await evaluate(`document.querySelector(".choice-button")?.click()`);
+for (let attempt = 0; attempt < 40; attempt += 1) {
+  const ready = await evaluate(
+    `Boolean(document.querySelector(".continue-button"))`,
+  );
+  if (ready) break;
+  await delay(100);
+}
+await evaluate(`document.querySelector(".continue-button")?.click()`);
+await delay(120);
+const mobileCinematic = await evaluate(`({
+  visible: Boolean(document.querySelector(".aftermath-shell")),
+  width: Math.round(document.querySelector(".aftermath-shell")?.getBoundingClientRect().width ?? 0),
+  imageLoaded: (document.querySelector(".reaction-frame img")?.naturalWidth ?? 0) > 0,
+  bodyLocked: document.body.style.overflow === "hidden"
+})`);
+const mobileCinematicShot = await screenshot("qa-mobile-cinematic.png");
 
 socket.close();
 chrome.kill();
@@ -216,12 +283,17 @@ const summary = {
   visited,
   ending,
   mobile,
+  mobileDossier,
+  mobileCinematic,
   browserErrors,
   screenshots: {
     desktopGameplay,
     desktopAiComposer,
+    desktopCinematic,
     desktopEnding,
     mobileGameplay,
+    mobileDossier: mobileDossierShot,
+    mobileCinematic: mobileCinematicShot,
   },
 };
 
@@ -241,6 +313,15 @@ if (
   mobile.choices !== 2 ||
   !mobile.composerVisible ||
   mobile.composerWidth > 370 ||
+  !mobileDossier.visible ||
+  mobileDossier.width > 374 ||
+  !mobileDossier.imageLoaded ||
+  mobileDossier.tabs !== 4 ||
+  !mobileDossier.bodyLocked ||
+  !mobileCinematic.visible ||
+  mobileCinematic.width > 374 ||
+  !mobileCinematic.imageLoaded ||
+  !mobileCinematic.bodyLocked ||
   browserErrors.length > 0
 ) {
   process.exitCode = 1;

@@ -28,7 +28,7 @@
 1. 玩家进入香港本地商务场景；
 2. 从策略选项中选择，或直接写出自己的回应；
 3. NPC 根据人物利益与玩家状态即时回应；
-4. 程序更新关系数值；
+4. 程序更新关系数值，并用人物反应与剧情证据镜头展示现场后果；
 5. AI 教练解释社会语用后果；
 6. 结局形成个人学习画像。
 
@@ -36,6 +36,8 @@
 
 - 用“关系后果”而不是背词驱动语言学习；
 - 把 Galgame 的角色记忆与商务情境训练结合；
+- 用 26 张幕前、反应、特写和角色锚点资产把语境变化导演成可见的故事，
+  而不是只显示一个分数；
 - 允许评委现场自由作答，再由两个模型分别负责剧情反应和香港语境
   纠偏；
 - 将可生成内容限制在角色表演和教练解释，故事图保持确定；
@@ -53,7 +55,7 @@
 
 ## Demo completeness
 
-- Five original scenes and fictional characters;
+- Five original main scenes plus 26 cinematic and character assets;
 - one complete start-to-ending path;
 - constrained free-form answers plus a deterministic offline path;
 - local checkpoint restore without storing raw player wording;
