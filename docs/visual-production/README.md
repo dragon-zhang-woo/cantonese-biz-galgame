@@ -1,13 +1,19 @@
-# 粤商通视觉资产包
+# 粤商通视觉资产生产文档
 
-建议阅读顺序：
+## 阅读顺序
 
-1. `VISUAL_BIBLE.md`：完整视觉规则、人物、镜头、服装、场景和剧情。
-2. `CHARACTER_BIBLE.md`：角色执行清单。
-3. `STORY_ASSET_MAP.md`：五幕剧情与资产映射。
-4. `GPT_IMAGE_2_PROMPT_TEMPLATES.md`：通用生成与编辑提示词。
-5. `ASSET_GENERATION_LOG.csv`：生成记录表。
-6. `ASSET_SOURCES_v2_PROPOSED.md`：建议版素材来源台账。
-7. `AGENTS_VISUAL_APPENDIX_PROPOSED.md`：建议追加到项目 AGENTS.md 的长期规则。
+1. [`VISUAL_BIBLE.md`](VISUAL_BIBLE.md)：正式视觉资产圣经，是色彩、镜头、服装、角色连续性和生产流程的唯一视觉规范。
+2. [`CHARACTER_BIBLE.md`](CHARACTER_BIBLE.md)：四名主要 NPC 与第一人称玩家的角色执行清单。
+3. [`STORY_ASSET_MAP.md`](STORY_ASSET_MAP.md)：五幕剧情与新增资产的精确映射；当前规划为 5 张建立镜头、12 张剧情插图和 5 组人物反应立绘。
+4. [`GPT_IMAGE_2_PROMPT_TEMPLATES.md`](GPT_IMAGE_2_PROMPT_TEMPLATES.md)：角色锚点、主场景、编辑和道具图提示词模板。
+5. [`ASSET_GENERATION_LOG.csv`](ASSET_GENERATION_LOG.csv)：逐资产生成、编辑、输入参考和 QA 台账。
+6. [`../../ASSET_SOURCES.md`](../../ASSET_SOURCES.md)：正式素材来源、原创性与第三方许可台账。
+7. [`../../AGENTS.md`](../../AGENTS.md)：项目长期视觉约束和不可破坏的实现决策。
 
-注意：年龄、具体外貌与服装属于本次新增的统一创作决策；现有项目文件只明确姓名、职务、场景与剧情功能。
+## 事实与创作标准
+
+当前代码和既有剧情明确了角色姓名、职务、场景和剧情功能。人物年龄、具体外貌、主服装和视觉识别属于视觉生产新增的统一创作标准。Vincent 在代码与文档中统一为“项目带教经理”；何太是玩家的直属经理和最终复盘负责人。
+
+## 生产门槛
+
+文档体系完成不等于可以无控制地批量生成。正式生产必须先完成并批准四名主要 NPC 的角色锚点，再以锚点作为后续立绘和场景编辑输入。所有被采用的结果都必须同步更新正式 `ASSET_SOURCES.md` 和 `ASSET_GENERATION_LOG.csv`。
