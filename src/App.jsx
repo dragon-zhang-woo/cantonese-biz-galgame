@@ -9,13 +9,25 @@ import {
   CloudSlash,
   Handshake,
   Headphones,
+  PaperPlaneTilt,
   Sparkle,
   SpeakerHigh,
   UserFocus,
   X,
 } from "@phosphor-icons/react";
 import { getScene, initialStatus, scenes } from "./data/scenes.js";
+import {
+  buildCustomOption,
+  canSubmitFreeResponse,
+  FREE_RESPONSE_MAX_LENGTH,
+} from "./services/freeResponse.js";
 import { requestAiTurn } from "./services/gameApi.js";
+import {
+  clearSession,
+  hasMeaningfulProgress,
+  readSession,
+  writeSession,
+} from "./services/sessionStore.js";
 
 const statusMeta = {
   trust: { label: "信任", Icon: Handshake },
@@ -23,6 +35,12 @@ const statusMeta = {
   language: { label: "粤语自然度", Icon: SpeakerHigh },
   culture: { label: "文化适配", Icon: UserFocus },
 };
+
+const localizationMeta = [
+  ["naturalness", "自然度"],
+  ["politeness", "礼貌度"],
+  ["businessFit", "商务适配"],
+];
 
 function clamp(value) {
   return Math.max(0, Math.min(100, value));
@@ -65,23 +83,80 @@ function ModeToggle({ mode, onChange }) {
   );
 }
 
-function IntroModal({ onStart }) {
+function providerLabel(provider) {
+  const labels = {
+    "deepseek+hkchat": "DeepSeek + 港话通",
+    "deepseek+fallback": "DeepSeek + 本地纠偏",
+    "fallback+hkchat": "标准剧情 + 港话通",
+    fallback: "离线保底",
+    story: "标准剧情",
+  };
+  return labels[provider] ?? provider;
+}
+
+function buildLocalFeedback(option) {
+  const toScore = (value) => Math.max(0, Math.min(10, 5 + Math.round(value / 2)));
+  return {
+    naturalness: toScore(option.delta.language),
+    politeness: toScore(option.delta.culture),
+    businessFit: toScore(option.delta.professionalism),
+    hkRewrite: option.text,
+    comment: option.feedback,
+    source: "fallback",
+  };
+}
+
+function LocalizationReview({ feedback }) {
+  return (
+    <section className="localization-review" aria-label="香港商务语境评分">
+      <div className="localization-scores">
+        {localizationMeta.map(([key, label]) => (
+          <div key={key}>
+            <span>{label}</span>
+            <strong>{feedback[key]}</strong>
+            <i aria-hidden="true">
+              <b style={{ width: `${feedback[key] * 10}%` }} />
+            </i>
+          </div>
+        ))}
+      </div>
+      <div className="rewrite-row">
+        <span>更港式的讲法</span>
+        <strong>{feedback.hkRewrite}</strong>
+      </div>
+      <p>{feedback.comment}</p>
+    </section>
+  );
+}
+
+function IntroModal({ onStart, onRestart, resumeStage }) {
+  const canResume = Boolean(resumeStage);
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <section className="intro-modal">
         <div className="intro-kicker">CANTONESEBIZ // CASE 01</div>
         <h1 id="intro-title">唔係背生词，<br />係学识点样倾。</h1>
         <p>
-          你刚加入一家香港咨询公司。三次职场对话，将决定客户是否愿意把项目交给你。
+          你刚加入一家香港咨询公司。五次职场对话，将决定客户是否愿意把项目交给你。
         </p>
         <div className="intro-rule">
           <Brain weight="duotone" aria-hidden="true" />
           <span>AI 分析语境与关系后果；剧情控制始终由规则引擎掌握。</span>
         </div>
         <button className="primary-cta" type="button" onClick={onStart}>
-          进入中环初会 <ArrowRight weight="bold" aria-hidden="true" />
+          {canResume ? `继续第 ${resumeStage} 幕` : "从金钟入职"}
+          <ArrowRight weight="bold" aria-hidden="true" />
         </button>
-        <small>约 3 分钟 · 支持完全离线演示</small>
+        {canResume && (
+          <button className="secondary-cta" type="button" onClick={onRestart}>
+            重新开始本次演练
+          </button>
+        )}
+        <small>
+          {canResume
+            ? "进度仅保存在本机；不会保存 API 密钥或你的自由作答原文"
+            : "约 5 分钟 · 支持完全离线演示"}
+        </small>
       </section>
     </div>
   );
@@ -146,17 +221,24 @@ function Ending({ status, history, onRestart }) {
 
 export function App() {
   const demoMode = new URLSearchParams(window.location.search).has("demo");
+  const savedSessionRef = useRef(demoMode ? null : readSession());
+  const savedSession = savedSessionRef.current;
   const [started, setStarted] = useState(demoMode);
-  const [sceneId, setSceneId] = useState(scenes[0].id);
-  const [status, setStatus] = useState(initialStatus);
-  const [mode, setMode] = useState("story");
+  const [sceneId, setSceneId] = useState(savedSession?.sceneId ?? scenes[0].id);
+  const [status, setStatus] = useState(savedSession?.status ?? initialStatus);
+  const [mode, setMode] = useState(savedSession?.mode ?? "story");
   const [selected, setSelected] = useState(null);
   const [resolvedTurn, setResolvedTurn] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState(savedSession?.history ?? []);
   const [isLoading, setIsLoading] = useState(false);
-  const [isEnded, setIsEnded] = useState(false);
+  const [isEnded, setIsEnded] = useState(savedSession?.isEnded ?? false);
   const [showGlossary, setShowGlossary] = useState(false);
   const [liveMessage, setLiveMessage] = useState("");
+  const [freeText, setFreeText] = useState("");
+  const [submittedText, setSubmittedText] = useState("");
+  const [resumeAvailable, setResumeAvailable] = useState(
+    hasMeaningfulProgress(savedSession),
+  );
   const timeoutRef = useRef(null);
 
   const scene = useMemo(() => getScene(sceneId), [sceneId]);
@@ -168,9 +250,18 @@ export function App() {
     return () => window.clearTimeout(timeoutRef.current);
   }, []);
 
+  useEffect(() => {
+    if (demoMode || !started || isLoading || (selected && !isEnded)) return;
+    writeSession({ sceneId, status, history, mode, isEnded });
+    setResumeAvailable(
+      hasMeaningfulProgress({ sceneId, status, history, mode, isEnded }),
+    );
+  }, [demoMode, history, isEnded, isLoading, mode, sceneId, selected, started, status]);
+
   async function chooseOption(option) {
     if (selected || isLoading) return;
     setSelected(option.id);
+    setSubmittedText(option.isCustom ? option.text : "");
     setIsLoading(true);
     setLiveMessage("正在分析你的语境选择");
 
@@ -179,6 +270,7 @@ export function App() {
       npcLineZh: option.responseZh,
       coachFeedback: option.feedback,
       delta: option.delta,
+      localization: buildLocalFeedback(option),
     };
 
     let result = baseResult;
@@ -206,17 +298,25 @@ export function App() {
       {
         sceneId: scene.id,
         choice: option.text,
-        learningPoint: option.learningPoint,
+        learningPoint: option.isCustom
+          ? result.coachFeedback
+          : option.learningPoint,
       },
     ]);
     setIsLoading(false);
     setLiveMessage(
-      provider === "deepseek"
-        ? "AI 即兴点评已生成"
-        : provider === "fallback"
-          ? "网络不可用，已无缝切换标准剧情"
+      provider === "deepseek+hkchat"
+        ? "双模型剧情与港式纠偏已生成"
+        : provider.includes("fallback")
+          ? "部分服务不可用，已启用可靠降级"
           : "选择结果已生成",
     );
+  }
+
+  function submitFreeResponse(event) {
+    event.preventDefault();
+    if (!canSubmitFreeResponse(freeText) || selected || isLoading) return;
+    chooseOption(buildCustomOption(scene, freeText));
   }
 
   function continueStory() {
@@ -228,19 +328,27 @@ export function App() {
     setSceneId(scene.nextSceneId);
     setSelected(null);
     setResolvedTurn(null);
+    setFreeText("");
+    setSubmittedText("");
     setShowGlossary(false);
     setLiveMessage("进入下一幕");
   }
 
   function restart() {
+    clearSession();
+    savedSessionRef.current = null;
     setSceneId(scenes[0].id);
     setStatus(initialStatus);
     setSelected(null);
     setResolvedTurn(null);
     setHistory([]);
+    setMode("story");
     setIsEnded(false);
     setStarted(true);
     setShowGlossary(false);
+    setFreeText("");
+    setSubmittedText("");
+    setResumeAvailable(false);
     setLiveMessage("演练已重新开始");
   }
 
@@ -287,6 +395,15 @@ export function App() {
             aria-label="播放当前粤语台词"
           >
             <Headphones weight="duotone" />
+          </button>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={restart}
+            aria-label="重新开始演练"
+            title="重新开始"
+          >
+            <ArrowCounterClockwise weight="duotone" />
           </button>
           <ModeToggle mode={mode} onChange={setMode} />
         </div>
@@ -335,9 +452,19 @@ export function App() {
           <Brain weight="duotone" aria-hidden="true" />
           <strong>{resolvedTurn ? "教练复盘" : "教练提示"}</strong>
           <span>{resolvedTurn?.coachFeedback ?? scene.coachHint}</span>
-          {resolvedTurn?.provider === "deepseek" && <em>DeepSeek</em>}
-          {resolvedTurn?.provider === "fallback" && <em>已降级</em>}
+          {resolvedTurn?.provider && <em>{providerLabel(resolvedTurn.provider)}</em>}
         </div>
+
+        {resolvedTurn?.localization && (
+          <LocalizationReview feedback={resolvedTurn.localization} />
+        )}
+
+        {submittedText && (
+          <div className="player-utterance">
+            <span>你刚才讲</span>
+            <strong>{submittedText}</strong>
+          </div>
+        )}
 
         <div className="choice-stack">
           {scene.options.map((option, index) => (
@@ -359,6 +486,38 @@ export function App() {
           ))}
         </div>
 
+        {mode === "ai" && !selected && (
+          <>
+            <div className="free-response-divider">
+              <span>或者由你自己讲</span>
+            </div>
+            <form className="free-response-form" onSubmit={submitFreeResponse}>
+              <label htmlFor="free-response">自由回应客户</label>
+              <div className="free-response-field">
+                <textarea
+                  id="free-response"
+                  value={freeText}
+                  onChange={(event) => setFreeText(event.target.value)}
+                  maxLength={FREE_RESPONSE_MAX_LENGTH}
+                  rows="2"
+                  placeholder="用粤语、普通话或中英夹杂回答…"
+                />
+                <button
+                  type="submit"
+                  disabled={!canSubmitFreeResponse(freeText) || isLoading}
+                >
+                  <PaperPlaneTilt weight="fill" aria-hidden="true" />
+                  让双模型回应
+                </button>
+              </div>
+              <div className="free-response-meta">
+                <span>DeepSeek 推演后果 · 港话通纠正港式表达</span>
+                <output>{freeText.length}/{FREE_RESPONSE_MAX_LENGTH}</output>
+              </div>
+            </form>
+          </>
+        )}
+
         {selected && !isLoading && (
           <button className="continue-button" type="button" onClick={continueStory}>
             {scene.nextSceneId ? "进入下一幕" : "查看学习报告"}
@@ -367,7 +526,7 @@ export function App() {
         )}
         {isLoading && (
           <div className="loading-row">
-            <i /> 正在推演对方的真实反应…
+            <i /> DeepSeek 推演角色反应，港话通检查港式表达…
           </div>
         )}
       </section>
@@ -382,7 +541,13 @@ export function App() {
       </div>
 
       <p className="sr-only" aria-live="polite">{liveMessage}</p>
-      {!started && <IntroModal onStart={() => setStarted(true)} />}
+      {!started && (
+        <IntroModal
+          onStart={() => setStarted(true)}
+          onRestart={restart}
+          resumeStage={resumeAvailable ? scene.stage : null}
+        />
+      )}
       {isEnded && <Ending status={status} history={history} onRestart={restart} />}
     </main>
   );

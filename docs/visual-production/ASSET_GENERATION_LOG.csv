@@ -1,0 +1,6 @@
+asset_id,file_path,status,asset_type,act,story_beat,character_ids,location,model,generation_date,size,prompt_version,parent_asset,generation_or_edit_id,selected_reason,license_notes
+SC-01,public/assets/scene-onboarding-vincent.png,approved,main_scene,1,Vincent onboarding,CH-01,Admiralty office,OpenAI ImageGen,2026-07-22,1536x1024,legacy,,019f79f4-b3ea-78a1-95da-4bba6f7af903,Existing approved scene,Original project asset
+SC-02,public/assets/scene-central-client.png,approved,main_scene,2,Client meeting,CH-02,Central meeting room,OpenAI ImageGen,,1536x1024,legacy,,019f7a09-af72-7342-92ea-9ccddf9fa650,Existing approved scene,Original project asset
+SC-03,public/assets/scene-pantry-colleague.png,approved,main_scene,3,Pantry conversation,CH-03,Office pantry,OpenAI ImageGen,,1536x1024,legacy,,019f7a09-f568-7090-afc7-5b15c4d1f328,Existing approved scene,Original project asset
+SC-04,public/assets/scene-crisis-client.png,approved,main_scene,4,Crisis response,CH-02,Central war room,OpenAI ImageGen,2026-07-22,1536x1024,legacy,,019f79f4-b3ea-78a1-95da-4bba6f7af903,Existing approved scene,Original project asset
+SC-05,public/assets/scene-manager-lunch.png,approved,main_scene,5,Manager debrief,CH-04,Wan Chai cha chaan teng,OpenAI ImageGen,,1536x1024,legacy,,019f7a0a-6581-79a3-a62a-80089f6c3966,Existing approved scene,Original project asset

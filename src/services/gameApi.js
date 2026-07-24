@@ -2,7 +2,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export async function requestAiTurn({ scene, option, status, fallback }) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 8500);
+  const timeout = window.setTimeout(() => controller.abort(), 38000);
 
   try {
     const response = await fetch(`${API_BASE}/api/game/turn`, {
@@ -41,6 +41,16 @@ export async function requestAiTurn({ scene, option, status, fallback }) {
         npcLineZh: payload.npc_line_zh,
         coachFeedback: payload.coach_feedback,
         delta: payload.delta,
+        localization: payload.localization
+          ? {
+              naturalness: payload.localization.naturalness,
+              politeness: payload.localization.politeness,
+              businessFit: payload.localization.business_fit,
+              hkRewrite: payload.localization.hk_rewrite,
+              comment: payload.localization.comment,
+              source: payload.localization.source,
+            }
+          : fallback.localization,
       },
     };
   } catch {

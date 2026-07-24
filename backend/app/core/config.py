@@ -6,9 +6,27 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "CantoneseBiz API"
     ai_provider: str = "mock"
+    ai_scene_provider: str = "deepseek"
+    ai_localize_provider: str = "hkchat"
+    allow_offline_fallback: bool = True
+    ai_cache_ttl_seconds: int = 600
+    ai_cache_max_entries: int = 64
     deepseek_api_key: str = ""
-    deepseek_model: str = "deepseek-v4-flash"
+    deepseek_model: str = "deepseek-v4-pro"
     deepseek_base_url: str = "https://api.deepseek.com"
+    hkchat_api_key: str = ""
+    hkchat_model: str = "t2_hkgai-v3_fp8_1m_e7"
+    hkchat_base_url: str = "https://test-new-api.hkchat.app"
+    hkchat_enable_thinking: bool = False
+    hkchat_reasoning_effort: str = "none"
+    hkchat_speech_api_key: str = ""
+    hkchat_speech_base_url: str = "https://openspeech.hkgai.net"
+    hkchat_toolhub_app_name: str = ""
+    hkchat_toolhub_app_key: str = ""
+    hkchat_toolhub_base_url: str = "https://toolhub.prod.hkchat.app"
+    hkchat_agenthub_app_name: str = ""
+    hkchat_agenthub_app_key: str = ""
+    hkchat_agenthub_base_url: str = "https://search-agent.prod.hkchat.app/v1"
     allowed_origins: str = (
         "http://localhost:4173,http://127.0.0.1:4173,"
         "http://localhost:5173,http://127.0.0.1:5173"

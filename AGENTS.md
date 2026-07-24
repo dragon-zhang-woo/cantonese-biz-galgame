@@ -11,6 +11,7 @@ When implementing from a selected generated mock, treat that image as the source
 - The selected visual target is ideation direction 3:
   `C:\Users\lenovo\.codex\generated_images\019f79f8-513d-7440-af2a-e8df86af7a6f\central-command-1440x1024.png`.
 - Preserve the cinematic Hong Kong office composition: full-bleed scene art, the active NPC on the right, compact status readout in the upper-right, and the dialogue/choice console occupying the lower third.
-- The core product is a three-act, desktop-first AI visual novel for Hong Kong business Cantonese and workplace culture. It must remain usable on a 390px-wide phone.
+- The core product is a five-act, desktop-first AI visual novel for Hong Kong business Cantonese and workplace culture. It must remain usable on a 390px-wide phone.
 - The game must complete in standard story mode without any model or network. AI improvisation is an enhancement, never the only path.
 - All story, character, and generated visual assets must be original and recorded in `ASSET_SOURCES.md`.
+- Dialogue consoles, coaching/review panels, choices and modals use smooth restrained curves, layered translucent materials, subtle edge highlights and low-noise texture. Avoid both hard flat rectangles and oversized consumer-app bubble styling.

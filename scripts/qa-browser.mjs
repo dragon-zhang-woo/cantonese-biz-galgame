@@ -158,12 +158,17 @@ const desktopGameplay = await screenshot("qa-desktop.png");
 
 await evaluate(`document.querySelector(".mode-toggle")?.click()`);
 await delay(100);
-const aiMode = await evaluate(
-  `document.querySelector(".mode-toggle")?.textContent.trim()`,
-);
+const aiMode = await evaluate(`({
+  label: document.querySelector(".mode-toggle")?.textContent.trim(),
+  composerVisible: Boolean(document.querySelector(".free-response-form")),
+  submitDisabled: document.querySelector(".free-response-field button")?.disabled
+})`);
+const desktopAiComposer = await screenshot("qa-ai-composer.png");
+await evaluate(`document.querySelector(".mode-toggle")?.click()`);
+await delay(100);
 
 const visited = [];
-for (let act = 0; act < 3; act += 1) {
+for (let act = 0; act < 5; act += 1) {
   visited.push(
     await evaluate(`document.querySelector(".speaker-name")?.textContent`),
   );
@@ -189,12 +194,16 @@ const desktopEnding = await screenshot("qa-ending.png");
 
 await setViewport(390, 844);
 await navigate(url);
+await evaluate(`document.querySelector(".mode-toggle")?.click()`);
+await delay(100);
 const mobile = await evaluate(`({
   width: window.innerWidth,
   height: window.innerHeight,
   choices: document.querySelectorAll(".choice-button").length,
   overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-  dialogueVisible: Boolean(document.querySelector(".dialogue-console"))
+  dialogueVisible: Boolean(document.querySelector(".dialogue-console")),
+  composerVisible: Boolean(document.querySelector(".free-response-form")),
+  composerWidth: Math.round(document.querySelector(".free-response-form")?.getBoundingClientRect().width ?? 0)
 })`);
 const mobileGameplay = await screenshot("qa-mobile.png");
 
@@ -210,6 +219,7 @@ const summary = {
   browserErrors,
   screenshots: {
     desktopGameplay,
+    desktopAiComposer,
     desktopEnding,
     mobileGameplay,
   },
@@ -220,13 +230,17 @@ console.log(JSON.stringify(summary, null, 2));
 if (
   initial.choices !== 2 ||
   initial.overflow ||
-  !aiMode.includes("AI 即兴") ||
-  visited.length !== 3 ||
+  !aiMode.label.includes("AI 即兴") ||
+  !aiMode.composerVisible ||
+  aiMode.submitDisabled !== true ||
+  visited.length !== 5 ||
   !ending.visible ||
-  ending.reportItems !== 3 ||
+  ending.reportItems !== 5 ||
   mobile.width !== 390 ||
   mobile.overflow ||
   mobile.choices !== 2 ||
+  !mobile.composerVisible ||
+  mobile.composerWidth > 370 ||
   browserErrors.length > 0
 ) {
   process.exitCode = 1;

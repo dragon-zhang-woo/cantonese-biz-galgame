@@ -4,9 +4,10 @@
 
 The model performs a character; it does not direct the application.
 
-The frontend owns the three-act story graph and the offline fallback payload.
-The backend may rewrite the immediate NPC reaction, translation, coaching
-feedback and bounded score delta. It cannot choose a different next node.
+The frontend owns the five-act story graph and the offline fallback payload.
+DeepSeek performs the immediate NPC reaction and bounded score delta. HKChat
+independently reviews the player's wording for naturalness, politeness and
+Hong Kong business fit. Neither provider can choose a different next node.
 
 ## Turn lifecycle
 
@@ -14,10 +15,12 @@ feedback and bounded score delta. It cannot choose a different next node.
 2. Standard mode resolves locally.
 3. AI mode sends the scene, action, current status and authored fallback to
    `POST /api/game/turn`.
-4. The selected provider returns a `ModelTurn`.
-5. Pydantic rejects missing, oversized or out-of-bounds fields.
-6. Any provider failure returns the authored fallback.
-7. The browser applies the validated delta and advances along the fixed graph.
+4. DeepSeek and HKChat run concurrently behind separate provider contracts.
+5. DeepSeek returns a `ModelTurn`; HKChat returns `LocalizationFeedback`.
+6. Pydantic rejects missing, oversized or out-of-bounds fields.
+7. Either provider may fall back independently without discarding the other.
+8. The validated response is cached for repeated demo inputs.
+9. The browser applies the bounded delta and advances along the fixed graph.
 
 ## Trust boundaries
 
@@ -30,11 +33,17 @@ feedback and bounded score delta. It cannot choose a different next node.
 
 ## Provider extension
 
-`AIProvider` exposes one method:
+`AIProvider` owns scene performance:
 
 ```python
 async def generate_turn(request: TurnRequest) -> ModelTurn
 ```
 
-An HKGAI Studio provider can implement the same contract without changing the
-game engine or UI.
+`LocalizationProvider` owns Hong Kong workplace-language review:
+
+```python
+async def review(request: TurnRequest) -> LocalizationFeedback
+```
+
+The game engine composes both contracts into one `TurnResponse` while keeping
+the fixed story graph authoritative.
