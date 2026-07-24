@@ -5,9 +5,8 @@ This file records every non-code visual asset used by CantoneseBiz.
 ## Original AI-assisted scene art
 
 The gameplay scenes were generated specifically for this project with OpenAI
-ImageGen under the project author's direction. They do
-not intentionally depict a real person, existing game character, trademark or
-franchise.
+ImageGen under the project author's direction. They do not intentionally depict
+a real person, existing game character, trademark or franchise.
 
 | File | Internal generation record | Purpose |
 |---|---|---|
@@ -28,6 +27,33 @@ reference and requested a rainy Central office war room, restrained urgency
 accents and the same interface-safe composition. Both prompts explicitly
 excluded brands, readable text, watermarks, real people and existing
 franchises.
+
+## Visual-production governance
+
+The canonical visual rules are maintained in
+[`docs/visual-production/VISUAL_BIBLE.md`](docs/visual-production/VISUAL_BIBLE.md).
+The detailed, row-level generation and QA ledger is
+[`docs/visual-production/ASSET_GENERATION_LOG.csv`](docs/visual-production/ASSET_GENERATION_LOG.csv).
+This file remains the authoritative human-readable source and license ledger;
+the CSV supplements it and must not replace or remove the provenance and
+license notes below.
+
+Every accepted generated or edited asset must record:
+
+- asset ID and repository path;
+- act, story beat, character and location;
+- model, date, dimensions and quality setting;
+- complete prompt version or prompt-file reference;
+- character-anchor and style-reference inputs;
+- parent asset and full generation/edit ID, including any `exec-...` record;
+- selection rationale and reviewer;
+- QA outcomes for character identity, composition/UI safe areas, palette,
+  hands/props, and absence of unintended text, logos or watermarks;
+- license and originality notes.
+
+Allowed lifecycle values are `draft`, `candidate`, `approved`, `rejected`,
+`superseded` and `archive`. Replaced files move to an archive path; their ledger
+rows remain intact so the edit lineage is not lost.
 
 ## Interface icons
 
