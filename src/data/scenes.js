@@ -15,7 +15,7 @@ export const scenes = [
     chapter: "第一章 · 入职报到",
     location: "金钟 · 公司前台",
     speaker: "Vincent",
-    role: "直属经理",
+    role: "项目带教经理",
     background: asset("scene-onboarding-vincent.png"),
     imageAlt: "清晨的香港金钟办公室前台，一位男经理拿着文件站在窗边",
     npcLineYue: "朝早十点同客户开会，你准备好点样介绍自己未？",
