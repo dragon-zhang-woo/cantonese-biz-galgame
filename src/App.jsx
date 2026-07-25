@@ -4,11 +4,15 @@ import {
   ArrowCounterClockwise,
   Brain,
   Briefcase,
+  CaretLeft,
+  CaretRight,
   CheckCircle,
   Cloud,
   CloudSlash,
+  FilmStrip,
   Handshake,
   Headphones,
+  IdentificationCard,
   PaperPlaneTilt,
   Sparkle,
   SpeakerHigh,
@@ -16,6 +20,10 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { getScene, initialStatus, scenes } from "./data/scenes.js";
+import {
+  characterDossiers,
+  getCinematic,
+} from "./data/storyAssets.js";
 import {
   buildCustomOption,
   canSubmitFreeResponse,
@@ -129,6 +137,193 @@ function LocalizationReview({ feedback }) {
   );
 }
 
+function ActPrelude({ cinematic, stage, onEnter }) {
+  const shot = cinematic.establishing;
+  return (
+    <div
+      className="cinematic-layer cinematic-layer--prelude"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="prelude-title"
+      style={{ "--cinematic-image": `url("${shot.image}")` }}
+    >
+      <div className="cinematic-backdrop" role="img" aria-label={shot.imageAlt} />
+      <div className="cinematic-vignette" />
+      <section className="prelude-card">
+        <div className="cinematic-index">ACT {String(stage).padStart(2, "0")} / 05</div>
+        <span>{shot.eyebrow}</span>
+        <h2 id="prelude-title">{shot.title}</h2>
+        <p>{shot.copy}</p>
+        <button className="primary-cta prelude-cta" type="button" onClick={onEnter}>
+          进入现场
+          <ArrowRight weight="bold" aria-hidden="true" />
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function CharacterDossier({ activeIndex, onChange, onClose }) {
+  const character = characterDossiers[activeIndex];
+  return (
+    <div className="dossier-layer" role="dialog" aria-modal="true" aria-labelledby="dossier-title">
+      <section className="dossier-shell">
+        <header>
+          <div>
+            <span>RELATIONSHIP INTELLIGENCE</span>
+            <h2 id="dossier-title">人物档案</h2>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭人物档案">
+            <X weight="bold" />
+          </button>
+        </header>
+        <div className="dossier-tabs" role="tablist" aria-label="选择人物">
+          {characterDossiers.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={activeIndex === index}
+              className={activeIndex === index ? "is-active" : ""}
+              onClick={() => onChange(index)}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
+        <div className="dossier-content">
+          <figure>
+            <img src={character.anchor} alt={character.imageAlt} />
+          </figure>
+          <div className="dossier-copy">
+            <span>{character.acts}</span>
+            <h3>{character.name}</h3>
+            <strong>{character.role}</strong>
+            <p>{character.profile}</p>
+            <div>
+              <Sparkle weight="fill" aria-hidden="true" />
+              <p><b>关系信号</b>{character.signal}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function reactionFrameFor(reaction, delta) {
+  const score =
+    (delta?.trust ?? 0) +
+    (delta?.professionalism ?? 0) +
+    (delta?.culture ?? 0);
+  if (score >= 5) return reaction.positiveFrame;
+  if (score < 0) return reaction.negativeFrame;
+  return reaction.neutralFrame;
+}
+
+function ReactionFrame({ reaction, frame }) {
+  return (
+    <div className="reaction-frame">
+      <img src={reaction.image} alt={reaction.imageAlt} />
+      <span>本轮反应 · {frame + 1}/{reaction.frames}</span>
+    </div>
+  );
+}
+
+function Aftermath({
+  scene,
+  cinematic,
+  resolvedTurn,
+  index,
+  onIndexChange,
+  onAdvance,
+  onClose,
+}) {
+  const items = [
+    {
+      id: "reaction",
+      type: "reaction",
+      title: `${scene.speaker}的即时反应`,
+      copy: resolvedTurn.npcLineZh,
+    },
+    ...cinematic.inserts.map((insert, insertIndex) => ({
+      ...insert,
+      id: `insert-${insertIndex}`,
+      type: "insert",
+    })),
+  ];
+  const item = items[index];
+  const isLast = index === items.length - 1;
+  const frame = reactionFrameFor(cinematic.reaction, resolvedTurn.delta);
+
+  return (
+    <div className="aftermath-layer" role="dialog" aria-modal="true" aria-labelledby="aftermath-title">
+      <section className="aftermath-shell">
+        <header>
+          <div>
+            <span>现场后果 · {index + 1}/{items.length}</span>
+            <strong>{scene.chapter}</strong>
+          </div>
+          <button className="text-button" type="button" onClick={onClose}>
+            返回复盘
+          </button>
+        </header>
+        <div className="aftermath-visual">
+          {item.type === "reaction" ? (
+            <ReactionFrame reaction={cinematic.reaction} frame={frame} />
+          ) : (
+            <img src={item.image} alt={item.imageAlt} />
+          )}
+          <div className="aftermath-gradient" />
+          <div className="aftermath-caption">
+            <span>{item.type === "reaction" ? "RELATION SHIFT" : "STORY EVIDENCE"}</span>
+            <h2 id="aftermath-title">{item.title}</h2>
+            <p>{item.copy}</p>
+            {item.type === "reaction" && (
+              <blockquote>「{resolvedTurn.npcLineYue}」</blockquote>
+            )}
+          </div>
+        </div>
+        <footer>
+          <button
+            className="aftermath-nav"
+            type="button"
+            onClick={() => onIndexChange(index - 1)}
+            disabled={index === 0}
+          >
+            <CaretLeft weight="bold" /> 上一镜
+          </button>
+          <div className="aftermath-dots" aria-label={`当前第 ${index + 1} 个镜头，共 ${items.length} 个`}>
+            {items.map((entry, dotIndex) => (
+              <button
+                key={entry.id}
+                type="button"
+                className={dotIndex === index ? "is-active" : ""}
+                onClick={() => onIndexChange(dotIndex)}
+                aria-label={`查看第 ${dotIndex + 1} 个镜头`}
+              />
+            ))}
+          </div>
+          {isLast ? (
+            <button className="aftermath-nav aftermath-nav--primary" type="button" onClick={onAdvance}>
+              {scene.nextSceneId ? "进入下一幕" : "查看学习报告"}
+              <ArrowRight weight="bold" />
+            </button>
+          ) : (
+            <button
+              className="aftermath-nav aftermath-nav--primary"
+              type="button"
+              onClick={() => onIndexChange(index + 1)}
+            >
+              下一镜 <CaretRight weight="bold" />
+            </button>
+          )}
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function IntroModal({ onStart, onRestart, resumeStage }) {
   const canResume = Boolean(resumeStage);
   return (
@@ -236,19 +431,35 @@ export function App() {
   const [liveMessage, setLiveMessage] = useState("");
   const [freeText, setFreeText] = useState("");
   const [submittedText, setSubmittedText] = useState("");
+  const [showPrelude, setShowPrelude] = useState(false);
+  const [showDossiers, setShowDossiers] = useState(false);
+  const [dossierIndex, setDossierIndex] = useState(0);
+  const [showAftermath, setShowAftermath] = useState(false);
+  const [aftermathIndex, setAftermathIndex] = useState(0);
   const [resumeAvailable, setResumeAvailable] = useState(
     hasMeaningfulProgress(savedSession),
   );
   const timeoutRef = useRef(null);
 
   const scene = useMemo(() => getScene(sceneId), [sceneId]);
+  const cinematic = useMemo(() => getCinematic(sceneId), [sceneId]);
   const activeLine = resolvedTurn?.npcLineYue ?? scene.npcLineYue;
   const activeTranslation =
     resolvedTurn?.npcLineZh ?? scene.npcLineZh;
+  const hasBlockingLayer =
+    !started || showPrelude || showDossiers || showAftermath || isEnded;
 
   useEffect(() => {
     return () => window.clearTimeout(timeoutRef.current);
   }, []);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = hasBlockingLayer ? "hidden" : previousOverflow;
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [hasBlockingLayer]);
 
   useEffect(() => {
     if (demoMode || !started || isLoading || (selected && !isEnded)) return;
@@ -319,8 +530,10 @@ export function App() {
     chooseOption(buildCustomOption(scene, freeText));
   }
 
-  function continueStory() {
+  function advanceStory() {
     if (!selected) return;
+    setShowAftermath(false);
+    setAftermathIndex(0);
     if (!scene.nextSceneId) {
       setIsEnded(true);
       return;
@@ -331,6 +544,7 @@ export function App() {
     setFreeText("");
     setSubmittedText("");
     setShowGlossary(false);
+    setShowPrelude(true);
     setLiveMessage("进入下一幕");
   }
 
@@ -348,6 +562,10 @@ export function App() {
     setShowGlossary(false);
     setFreeText("");
     setSubmittedText("");
+    setShowPrelude(true);
+    setShowDossiers(false);
+    setShowAftermath(false);
+    setAftermathIndex(0);
     setResumeAvailable(false);
     setLiveMessage("演练已重新开始");
   }
@@ -388,6 +606,15 @@ export function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => setShowDossiers(true)}
+            aria-label="查看人物档案"
+            title="人物档案"
+          >
+            <IdentificationCard weight="duotone" />
+          </button>
           <button
             className="icon-button"
             type="button"
@@ -519,9 +746,16 @@ export function App() {
         )}
 
         {selected && !isLoading && (
-          <button className="continue-button" type="button" onClick={continueStory}>
-            {scene.nextSceneId ? "进入下一幕" : "查看学习报告"}
-            <ArrowRight weight="bold" />
+          <button
+            className="continue-button"
+            type="button"
+            onClick={() => {
+              setAftermathIndex(0);
+              setShowAftermath(true);
+            }}
+          >
+            <FilmStrip weight="fill" />
+            查看现场后果
           </button>
         )}
         {isLoading && (
@@ -543,9 +777,37 @@ export function App() {
       <p className="sr-only" aria-live="polite">{liveMessage}</p>
       {!started && (
         <IntroModal
-          onStart={() => setStarted(true)}
+          onStart={() => {
+            setStarted(true);
+            setShowPrelude(true);
+          }}
           onRestart={restart}
           resumeStage={resumeAvailable ? scene.stage : null}
+        />
+      )}
+      {started && showPrelude && (
+        <ActPrelude
+          cinematic={cinematic}
+          stage={scene.stage}
+          onEnter={() => setShowPrelude(false)}
+        />
+      )}
+      {showDossiers && (
+        <CharacterDossier
+          activeIndex={dossierIndex}
+          onChange={setDossierIndex}
+          onClose={() => setShowDossiers(false)}
+        />
+      )}
+      {showAftermath && resolvedTurn && (
+        <Aftermath
+          scene={scene}
+          cinematic={cinematic}
+          resolvedTurn={resolvedTurn}
+          index={aftermathIndex}
+          onIndexChange={setAftermathIndex}
+          onAdvance={advanceStory}
+          onClose={() => setShowAftermath(false)}
         />
       )}
       {isEnded && <Ending status={status} history={history} onRestart={restart} />}

@@ -31,3 +31,5 @@ When implementing from a selected generated mock, treat that image as the source
 - Use high-end semi-realistic cinematic illustration, not exaggerated anime, plastic photorealism, generic corporate stock imagery or neon cyberpunk.
 - Record every accepted generated asset in both `ASSET_SOURCES.md` and `docs/visual-production/ASSET_GENERATION_LOG.csv`, including generation/edit IDs, input anchors, prompt version and QA results.
 - Visual enrichment may add five establishing shots, twelve story inserts, five reaction-portrait groups and reusable overlays, but it must not change the deterministic five-act story graph or `nextSceneId`.
+- Each act now uses the accepted establishing shot as a prelude and the accepted reaction sheet plus story inserts as a post-choice consequence sequence. Keep this cinematic rhythm when adding content.
+- The four accepted character anchor sheets power the in-game relationship dossiers; do not replace them with text-only biographies or untracked portraits.

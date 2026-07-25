@@ -8,6 +8,12 @@
   `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-desktop.png`
 - Mobile implementation screenshot:
   `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-mobile.png`
+- Cinematic consequence screenshot:
+  `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-cinematic.png`
+- Mobile character dossier:
+  `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-mobile-dossier.png`
+- Mobile cinematic consequence:
+  `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-mobile-cinematic.png`
 - Ending-state screenshot:
   `D:\火鸟黑客松竞赛\粤商通 Galgame\qa-ending.png`
 - Crisis-scene screenshot:
@@ -37,10 +43,12 @@ No actionable P0, P1, or P2 mismatches remain.
   warm gold, muted violet and cyan status accent. Borders, opacity and contrast
   preserve hierarchy without introducing an unrelated palette.
 - Image quality and asset fidelity: all five scenes use dedicated 1536 × 1024
-  raster artwork with a consistent cinematic Hong Kong business-galgame art
-  direction. The first scene's subject, skyline, crop and warm/cool balance
-  match the selected source. No image slot is represented with CSS art,
-  handcrafted SVG, emoji or a placeholder.
+  raster artwork, augmented by five establishing shots, twelve story inserts,
+  five reaction sheets and four character anchors with a consistent cinematic
+  Hong Kong business-galgame art direction. The first scene's subject, skyline,
+  crop and warm/cool balance match the selected source. All new visual slots use
+  real project raster assets rather than CSS art, handcrafted SVG, emoji or
+  placeholders.
 - Copy and content: all product text is specific to the fictional workplace
   scenario. The implementation adds a fourth learning metric and longer,
   actionable choices as an intentional gameplay requirement; no prompt or
@@ -121,6 +129,30 @@ No actionable P0, P1, or P2 mismatches remain.
 - Fixed the mobile brand wrapping and restored metric icons to the compact
   score panel, keeping the top bar legible at 390px.
 
+### Iteration 5 — 26-asset cinematic story expansion
+
+- Added one establishing prelude to every act, a post-choice consequence
+  sequence with one reaction sheet and 2–3 story inserts, and a four-character
+  relationship dossier. The deterministic five-act graph and score logic remain
+  unchanged.
+- The first reaction implementation stretched a multi-pose source sheet
+  horizontally. This was a P1 image-fidelity defect. It was replaced with a
+  proportional full-sheet treatment plus a compact indicator for the active
+  reaction state, then recaptured.
+- Desktop captures show the source image ratio preserved, the selected navy /
+  gold / violet / cyan material language, restrained curves and readable
+  caption hierarchy.
+- Mobile dossier and cinematic captures fit within 374px at a 390 × 844
+  viewport. Anchor and reaction images load at native proportions; character
+  tabs, close/back actions and the next-shot action remain usable.
+- The complete headless-browser flow visits Vincent, 陈嘉敏, 阿朗, 陈嘉敏
+  and 何太, opens every act's consequence sequence and establishing shot, and
+  finishes with five learning-report items. Browser logs contain zero warnings
+  or errors.
+- The asset ledger contains 32 rows × 26 columns: five original main scenes,
+  26 newly accepted assets and one header. Missing provider generation IDs are
+  explicitly recorded as unavailable rather than inferred.
+
 ## Follow-up polish
 
 - [P3] The source uses three compact status rows while the product uses four
@@ -136,6 +168,6 @@ No actionable P0, P1, or P2 mismatches remain.
 - [x] Five-scene primary interaction completed in a real Chromium renderer.
 - [x] 390 × 844 responsive state verified.
 - [x] Browser console checked with zero errors.
-- [x] Lint, 7 frontend tests, production build and 7 API tests passed.
+- [x] Lint, 9 frontend tests, production build and 7 API tests passed.
 
 final result: passed

@@ -16,6 +16,67 @@ a real person, existing game character, trademark or franchise.
 | `public/assets/scene-onboarding-vincent.png` | `019f79f4-b3ea-78a1-95da-4bba6f7af903 / exec-c49f8b46-960b-4ad6-bba9-1f2d609b0a55` | Admiralty onboarding |
 | `public/assets/scene-crisis-client.png` | `019f79f4-b3ea-78a1-95da-4bba6f7af903 / exec-08adaf13-e760-40b3-97c4-b41e50d836b5` | Client crisis response |
 
+## GPT Image 2 cinematic expansion batch
+
+The following assets were generated specifically for CantoneseBiz from the
+project-owned prompts in
+[`docs/visual-production/GPT_IMAGE_2_CONCRETE_PROMPTS.md`](docs/visual-production/GPT_IMAGE_2_CONCRETE_PROMPTS.md)
+and supplied by the project author in `public/assets/` on 2026-07-24. The PNGs
+do not embed the provider generation identifiers, so the ledger records
+`not exported with supplied PNG` rather than inventing an ID. The files passed
+visual review for the intended story beat, project palette, original fictional
+subjects, usable composition, and absence of obvious brands, readable business
+copy or watermarks.
+
+### Character anchors
+
+| File | Prompt | Gameplay purpose |
+|---|---|---|
+| `public/assets/char-vincent-anchor-candidate-[a-d]-v01.png` | `P0-A01` | Vincent relationship dossier |
+| `public/assets/char-chen-jiamin-anchor-candidate-[a-d]-v01.png` | `P0-A02` | Chen Jiamin relationship dossier and identity reference |
+| `public/assets/char-ah-long-anchor-candidate-[a-d]-v01.png` | `P0-A03` | Ah Long relationship dossier |
+| `public/assets/char-mrs-ho-anchor-candidate-[a-d]-v01.png` | `P0-A04` | Mrs Ho relationship dossier |
+
+The filenames retain the original prompt placeholder for traceability even
+though the supplied sheets are the versions accepted into the current game.
+
+### Reaction sheets
+
+| File | Prompt | Gameplay purpose |
+|---|---|---|
+| `public/assets/reaction-vincent-act1-reference-v01.png` | `P0-B01` | Act 1 relationship consequence |
+| `public/assets/reaction-chen-jiamin-act2-reference-v01.png` | `P0-B02` | Act 2 relationship consequence |
+| `public/assets/reaction-ah-long-act3-reference-v01.png` | `P0-B03` | Act 3 relationship consequence |
+| `public/assets/reaction-chen-jiamin-act4-reference-v01.png` | `P0-B04` | Act 4 crisis consequence |
+| `public/assets/reaction-mrs-ho-act5-reference-v01.png` | `P0-B05` | Act 5 relationship consequence |
+
+### Establishing shots
+
+| File | Prompt | Gameplay purpose |
+|---|---|---|
+| `public/assets/establishing-admiralty-morning-act1-v01.png` | `P1-A01` | Act 1 Admiralty morning prelude |
+| `public/assets/establishing-central-sunset-act2-v01.png` | `P1-A02` | Act 2 Central sunset prelude |
+| `public/assets/establishing-pantry-bluehour-act3-v01.png` | `P1-A03` | Act 3 pantry blue-hour prelude |
+| `public/assets/establishing-central-rain-act4-v01.png` | `P1-A04` | Act 4 rainy Central prelude |
+| `public/assets/establishing-wanchai-night-act5-v01.png` | `P1-A05` | Act 5 Wan Chai night prelude |
+
+### Story inserts
+
+| File | Prompt | Gameplay purpose |
+|---|---|---|
+| `public/assets/insert-vincent-folder-act1-v01.png` | `P1-B01` | Vincent hands over the project folder |
+| `public/assets/insert-player-elevator-reflection-act1-v01.png` | `P1-B02` | First-person pre-meeting preparation |
+| `public/assets/insert-unsigned-proposal-act2-v01.png` | `P1-B03` | The proposal remains unsigned |
+| `public/assets/insert-chen-jiamin-pause-act2-v01.png` | `P1-B04` | Chen pauses and asks for evidence |
+| `public/assets/insert-two-coffees-act3-v01.png` | `P1-B05` | Informal pantry signal |
+| `public/assets/insert-meeting-reflection-act3-v01.png` | `P1-B06` | Unresolved meeting-room reflection |
+| `public/assets/insert-data-mismatch-act4-v01.png` | `P1-B07` | Conflicting pilot data |
+| `public/assets/insert-chen-phone-light-act4-v01.png` | `P1-B08` | Client escalation arrives by phone |
+| `public/assets/insert-player-checklist-act4-v01.png` | `P1-B09` | Player creates the 9 p.m. repair checklist |
+| `public/assets/insert-tea-plan-act5-v01.png` | `P1-B10` | Verbal intent beside a one-page plan |
+| `public/assets/insert-pilot-scope-act5-v01.png` | `P1-B11` | Bounded pilot scope |
+| `public/assets/insert-player-leaves-wanchai-act5-v01.png` | `P1-B12` | First-person Wan Chai closing shot |
+
 Prompts and art direction were created for CantoneseBiz. Source generation
 records are retained locally by the project author.
 

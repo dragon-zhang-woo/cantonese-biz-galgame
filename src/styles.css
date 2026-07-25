@@ -736,6 +736,391 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.cinematic-layer,
+.dossier-layer,
+.aftermath-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+}
+
+.cinematic-layer--prelude {
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  background: var(--ink-950);
+}
+
+.cinematic-backdrop {
+  position: absolute;
+  inset: 0;
+  background-image: var(--cinematic-image);
+  background-size: cover;
+  background-position: center;
+  animation: cinematic-enter 680ms ease-out both;
+}
+
+.cinematic-vignette {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 8, 18, 0.28);
+  box-shadow:
+    inset 0 -48dvh 120px rgba(3, 8, 18, 0.88),
+    inset 0 0 140px rgba(3, 8, 18, 0.38);
+  pointer-events: none;
+}
+
+.prelude-card {
+  position: relative;
+  width: min(760px, calc(100% - 48px));
+  margin: 0 0 clamp(36px, 8vh, 92px) clamp(24px, 8vw, 124px);
+  padding: clamp(24px, 4vw, 42px);
+  color: var(--paper-100);
+  background: rgba(5, 12, 27, 0.84);
+  border: 1px solid rgba(244, 190, 85, 0.48);
+  border-radius: 30px 30px 14px 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 28px 80px rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(18px);
+}
+
+.cinematic-index,
+.prelude-card > span,
+.dossier-shell header span,
+.aftermath-shell header span,
+.aftermath-caption > span {
+  color: var(--gold-400);
+  font-size: 11px;
+  font-weight: 820;
+  letter-spacing: 0.15em;
+}
+
+.cinematic-index {
+  position: absolute;
+  top: -38px;
+  left: 4px;
+  color: var(--paper-300);
+}
+
+.prelude-card h2 {
+  max-width: 620px;
+  margin: 12px 0 10px;
+  font-size: clamp(30px, 4vw, 54px);
+  line-height: 1.14;
+  letter-spacing: -0.035em;
+}
+
+.prelude-card p {
+  max-width: 640px;
+  margin: 0;
+  color: var(--paper-300);
+  font-size: clamp(14px, 1.4vw, 18px);
+  line-height: 1.75;
+}
+
+.prelude-cta {
+  width: min(240px, 100%);
+  margin-top: 24px;
+}
+
+.dossier-layer,
+.aftermath-layer {
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 3vw, 36px);
+  background: rgba(3, 8, 18, 0.84);
+  backdrop-filter: blur(18px);
+}
+
+.dossier-shell,
+.aftermath-shell {
+  width: min(1120px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+  background: rgba(7, 16, 35, 0.97);
+  border: 1px solid rgba(244, 190, 85, 0.4);
+  border-radius: 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 34px 100px rgba(0, 0, 0, 0.5);
+}
+
+.dossier-shell > header,
+.aftermath-shell > header,
+.aftermath-shell > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dossier-shell header h2 {
+  margin: 2px 0 0;
+  font-size: 24px;
+}
+
+.dossier-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 22px;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dossier-tabs button {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  color: var(--paper-500);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.dossier-tabs button.is-active {
+  color: var(--ink-950);
+  background: var(--gold-400);
+  border-color: var(--gold-400);
+}
+
+.dossier-content {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(320px, 1.05fr);
+  min-height: 560px;
+}
+
+.dossier-content figure {
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ink-950);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dossier-content figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dossier-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(28px, 5vw, 68px);
+}
+
+.dossier-copy > span {
+  color: var(--cyan-400);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.dossier-copy h3 {
+  margin: 12px 0 2px;
+  font-size: clamp(34px, 4vw, 54px);
+  letter-spacing: -0.035em;
+}
+
+.dossier-copy > strong {
+  color: var(--gold-400);
+  font-size: 15px;
+}
+
+.dossier-copy > p {
+  margin: 24px 0;
+  color: var(--paper-300);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.dossier-copy > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 18px;
+  color: var(--paper-300);
+  background: rgba(106, 223, 231, 0.075);
+  border: 1px solid rgba(106, 223, 231, 0.25);
+  border-radius: 20px 20px 8px 20px;
+}
+
+.dossier-copy > div svg {
+  color: var(--cyan-400);
+  font-size: 20px;
+}
+
+.dossier-copy > div p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.dossier-copy > div b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--cyan-400);
+}
+
+.aftermath-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: min(760px, calc(100dvh - 48px));
+}
+
+.aftermath-shell > header strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 15px;
+}
+
+.aftermath-visual {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ink-950);
+}
+
+.aftermath-visual > img,
+.reaction-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.aftermath-visual > img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.reaction-frame {
+  position: relative;
+  background: var(--ink-950);
+}
+
+.reaction-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+}
+
+.reaction-frame > span {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 7px 10px;
+  color: var(--paper-300);
+  background: rgba(5, 12, 27, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  backdrop-filter: blur(10px);
+}
+
+.aftermath-gradient {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 8, 18, 0.12);
+  box-shadow: inset 0 -260px 120px rgba(3, 8, 18, 0.9);
+  pointer-events: none;
+}
+
+.aftermath-caption {
+  position: absolute;
+  right: clamp(22px, 5vw, 64px);
+  bottom: clamp(22px, 5vh, 54px);
+  left: clamp(22px, 5vw, 64px);
+  max-width: 720px;
+  padding: 22px 24px;
+  background: rgba(5, 12, 27, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-left-color: var(--gold-400);
+  border-radius: 24px 24px 10px 24px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 20px 50px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(14px);
+}
+
+.aftermath-caption h2 {
+  margin: 7px 0 5px;
+  font-size: clamp(24px, 3vw, 38px);
+}
+
+.aftermath-caption p,
+.aftermath-caption blockquote {
+  margin: 0;
+  color: var(--paper-300);
+  line-height: 1.65;
+}
+
+.aftermath-caption blockquote {
+  margin-top: 12px;
+  color: var(--paper-100);
+  font-size: 17px;
+}
+
+.aftermath-shell > footer {
+  min-height: 72px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 0;
+}
+
+.aftermath-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 130px;
+  min-height: 42px;
+  padding: 0 14px;
+  color: var(--paper-300);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--curve-sm);
+  cursor: pointer;
+}
+
+.aftermath-nav:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.aftermath-nav--primary {
+  color: var(--ink-950);
+  background: var(--gold-400);
+  border-color: var(--gold-400);
+  font-weight: 820;
+}
+
+.aftermath-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.aftermath-dots button {
+  width: 24px;
+  height: 3px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.aftermath-dots button.is-active {
+  background: var(--gold-400);
+}
+
 .modal-layer,
 .ending-layer {
   position: fixed;
@@ -928,6 +1313,17 @@ button:focus-visible {
   }
 }
 
+@keyframes cinematic-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.035);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 900px) {
   .score-board {
     top: 100px;
@@ -960,6 +1356,14 @@ button:focus-visible {
 
   .localization-scores {
     grid-row: auto;
+  }
+
+  .dossier-content {
+    grid-template-columns: minmax(260px, 0.85fr) minmax(300px, 1.15fr);
+  }
+
+  .dossier-copy {
+    padding: 32px;
   }
 }
 
@@ -1016,6 +1420,19 @@ button:focus-visible {
 
   .mode-toggle span {
     display: none;
+  }
+
+  .topbar-actions {
+    gap: 7px;
+  }
+
+  .icon-button,
+  .mode-toggle {
+    min-height: 38px;
+  }
+
+  .icon-button {
+    width: 38px;
   }
 
   .score-board {
@@ -1183,6 +1600,140 @@ button:focus-visible {
   .score-pill--compact {
     min-height: 42px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .prelude-card {
+    width: calc(100% - 24px);
+    margin: 0 12px 22px;
+    padding: 24px 20px;
+    border-radius: 24px 24px 10px 24px;
+  }
+
+  .cinematic-index {
+    top: -30px;
+  }
+
+  .prelude-card h2 {
+    font-size: 32px;
+  }
+
+  .dossier-layer,
+  .aftermath-layer {
+    padding: 8px;
+  }
+
+  .dossier-shell,
+  .aftermath-shell {
+    max-height: calc(100dvh - 16px);
+    border-radius: 22px;
+  }
+
+  .dossier-shell {
+    overflow-y: auto;
+  }
+
+  .dossier-shell > header,
+  .aftermath-shell > header,
+  .aftermath-shell > footer {
+    padding: 13px 14px;
+  }
+
+  .dossier-tabs {
+    padding: 10px 14px;
+  }
+
+  .dossier-tabs button {
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+
+  .dossier-content {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .dossier-content figure {
+    height: 44dvh;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dossier-copy {
+    padding: 22px 18px 26px;
+  }
+
+  .dossier-copy h3 {
+    font-size: 34px;
+  }
+
+  .dossier-copy > p {
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  .aftermath-shell {
+    height: calc(100dvh - 16px);
+  }
+
+  .aftermath-shell > header strong {
+    max-width: 210px;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aftermath-visual > img {
+    object-position: center;
+  }
+
+  .aftermath-gradient {
+    box-shadow: inset 0 -300px 120px rgba(3, 8, 18, 0.92);
+  }
+
+  .aftermath-caption {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    padding: 16px;
+    border-radius: 20px 20px 8px 20px;
+  }
+
+  .aftermath-caption h2 {
+    font-size: 24px;
+  }
+
+  .aftermath-caption p,
+  .aftermath-caption blockquote {
+    font-size: 13px;
+  }
+
+  .aftermath-shell > footer {
+    min-height: 64px;
+  }
+
+  .aftermath-nav {
+    min-width: 42px;
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 0;
+  }
+
+  .aftermath-nav svg {
+    font-size: 18px;
+  }
+
+  .aftermath-nav--primary {
+    min-width: 110px;
+    font-size: 12px;
+  }
+
+  .aftermath-dots {
+    gap: 4px;
+  }
+
+  .aftermath-dots button {
+    width: 14px;
   }
 }
 
