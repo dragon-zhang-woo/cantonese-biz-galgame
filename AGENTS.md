@@ -33,3 +33,5 @@ When implementing from a selected generated mock, treat that image as the source
 - Visual enrichment may add five establishing shots, twelve story inserts, five reaction-portrait groups and reusable overlays, but it must not change the deterministic five-act story graph or `nextSceneId`.
 - Each act now uses the accepted establishing shot as a prelude and the accepted reaction sheet plus story inserts as a post-choice consequence sequence. Keep this cinematic rhythm when adding content.
 - The four accepted character anchor sheets power the in-game relationship dossiers; do not replace them with text-only biographies or untracked portraits.
+- Preserve the original five-act `nextSceneId` campaign as the short competition demo, but practical expansion may add standalone training cases outside that graph. Each main NPC should have at least three playable encounters across the campaign and training library.
+- Standalone training cases must teach a transferable workplace task, expose a hidden relationship risk, support free response in dual-model mode, retain a deterministic offline path, and end with an actionable real-world template.

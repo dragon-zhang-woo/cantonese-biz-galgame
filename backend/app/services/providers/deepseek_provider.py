@@ -28,6 +28,12 @@ Requirements:
   npc_line_yue; the two lines must express the same reaction.
 - Never claim one wording is universally correct.
 - Coach feedback must distinguish linguistic correctness from social effect.
+- When the scene includes objective, hidden_risk and transfer_template, assess
+  whether the player's action completes that practical task and manages the
+  hidden risk. Give one actionable improvement that the player can transfer to
+  a real workplace conversation.
+- Do not reveal hidden_risk as a game-system label. Explain its consequence in
+  ordinary coaching language.
 - Do not introduce legal, financial or medical advice.
 - Each delta must be an integer from -6 to 6.
 - When choice_id is not "custom-response", preserve the supplied outcome

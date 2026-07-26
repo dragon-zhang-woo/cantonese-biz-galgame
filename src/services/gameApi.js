@@ -17,6 +17,9 @@ export async function requestAiTurn({ scene, option, status, fallback }) {
           npc_line_yue: scene.npcLineYue,
           npc_line_zh: scene.npcLineZh,
           coach_hint: scene.coachHint,
+          objective: scene.objective ?? "",
+          hidden_risk: scene.hiddenRisk ?? "",
+          transfer_template: scene.transferTemplate ?? "",
         },
         player_action: {
           choice_id: option.id,

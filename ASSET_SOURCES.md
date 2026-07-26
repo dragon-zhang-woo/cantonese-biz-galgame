@@ -80,6 +80,32 @@ though the supplied sheets are the versions accepted into the current game.
 Prompts and art direction were created for CantoneseBiz. Source generation
 records are retained locally by the project author.
 
+## Practical scenario library batch
+
+Seven additional 1536×1024 training backgrounds were generated specifically
+for the practical scenario library on 2026-07-26. The accepted images follow
+the project-owned prompts in
+[`docs/visual-production/GPT_IMAGE_2_PRACTICE_CASE_PROMPTS.md`](docs/visual-production/GPT_IMAGE_2_PRACTICE_CASE_PROMPTS.md).
+P01 was produced with OpenAI Image Generation; P02–P07 were produced with GPT
+Image 2 in ChatGPT using only the project-owned character anchors and existing
+scene art named below. No signed download URLs or account credentials are
+stored in the repository.
+
+| File | Prompt | Identity / style inputs | Generation record | Gameplay purpose |
+|---|---|---|---|---|
+| `public/assets/practice-vincent-clarify-brief-v01.png` | `P01` | Vincent anchor + onboarding scene | `call_CIj4qK4omty7Ct45gAP6IDtj` | Clarify a vague task before starting |
+| `public/assets/practice-mrs-ho-priority-conflict-v01.png` | `P02` | Mrs Ho anchor + manager scene | `file_00000000191481f591c2697ebb4a404c` | Negotiate two conflicting priorities |
+| `public/assets/practice-vincent-bad-news-v01.png` | `P03` | Vincent anchor + onboarding scene | `file_0000000080c481f5a2d0424aaed6566c` | Communicate a confirmed delay early |
+| `public/assets/practice-ah-long-networking-lunch-v01.png` | `P04` | Ah Long anchor + pantry scene | `file_00000000753481fdbcdee3c176c8bd27` | Build a relationship without extracting favors |
+| `public/assets/practice-ah-long-soft-followup-v01.png` | `P05` | Ah Long anchor + pantry scene | `file_00000000ec6881f5b889ae75af418eeb` | Turn a soft promise into an owner and time |
+| `public/assets/practice-mrs-ho-scope-creep-v01.png` | `P06` | Mrs Ho anchor + manager scene | `file_00000000d85c81f58c832f43a10f00a6` | Negotiate scope impact and exchange |
+| `public/assets/practice-chen-executive-brief-v01.png` | `P07` | Chen Jiamin anchor + client scene | `file_00000000bcd481f8bf74a65275c7a448` | Deliver a one-minute decision brief |
+
+Codex visually reviewed all seven accepted outputs for fictional-character
+continuity, right-weighted composition, dialogue-safe lower framing, project
+palette, believable hands and props, and absence of obvious readable business
+copy, brands, logos, watermarks or signatures.
+
 The 2026-07-22 onboarding prompt requested an original fictional manager in a
 Hong Kong office reception, with a right-weighted subject, blue-and-warm-gold
 cinematic lighting and a quiet lower area reserved for the game interface. The
