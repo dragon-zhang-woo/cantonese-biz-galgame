@@ -7,12 +7,12 @@ import {
   Clock,
   FileText,
   Funnel,
+  House,
   MagnifyingGlass,
   Repeat,
   Sparkle,
   Target,
   WarningCircle,
-  X,
 } from "@phosphor-icons/react";
 
 function difficultyTone(difficulty) {
@@ -25,7 +25,7 @@ export function PracticeLibrary({
   scenarios,
   progress,
   onSelect,
-  onClose,
+  onHome,
 }) {
   const [query, setQuery] = useState("");
   const [relation, setRelation] = useState("全部关系");
@@ -86,12 +86,12 @@ export function PracticeLibrary({
             <span>已完成</span>
           </div>
           <button
-            className="icon-button"
+            className="home-button overlay-home-button"
             type="button"
-            onClick={onClose}
-            aria-label="关闭情境训练库"
+            onClick={onHome}
           >
-            <X weight="bold" />
+            <House weight="duotone" aria-hidden="true" />
+            返回首页
           </button>
         </header>
 
@@ -174,7 +174,7 @@ export function PracticeLibrary({
   );
 }
 
-export function PracticeBrief({ scenario, onEnter, onBack }) {
+export function PracticeBrief({ scenario, onEnter, onBack, onHome }) {
   return (
     <div
       className="practice-layer practice-layer--brief"
@@ -186,9 +186,15 @@ export function PracticeBrief({ scenario, onEnter, onBack }) {
       <div className="practice-brief__image" role="img" aria-label={scenario.imageAlt} />
       <div className="practice-brief__shade" />
       <section className="practice-brief">
-        <button className="text-button" type="button" onClick={onBack}>
-          <ArrowLeft weight="bold" /> 返回训练库
-        </button>
+        <nav className="practice-brief__nav" aria-label="训练导航">
+          <button className="text-button" type="button" onClick={onBack}>
+            <ArrowLeft weight="bold" /> 返回训练库
+          </button>
+          <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+            <House weight="duotone" aria-hidden="true" />
+            返回首页
+          </button>
+        </nav>
         <span>{scenario.skill} · {scenario.difficulty} · {scenario.duration}</span>
         <h2 id="practice-brief-title">{scenario.chapter}</h2>
         <div className="practice-brief__task">
@@ -221,6 +227,7 @@ export function PracticeResult({
   sources,
   onRetry,
   onLibrary,
+  onHome,
 }) {
   return (
     <div
@@ -309,6 +316,9 @@ export function PracticeResult({
         </div>
 
         <footer>
+          <button className="secondary-cta" type="button" onClick={onHome}>
+            <House weight="duotone" aria-hidden="true" /> 返回首页
+          </button>
           <button className="secondary-cta" type="button" onClick={onRetry}>
             <Repeat weight="bold" /> 换一种讲法再练
           </button>

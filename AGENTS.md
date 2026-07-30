@@ -35,6 +35,7 @@ When implementing from a selected generated mock, treat that image as the source
 - The four accepted character anchor sheets power the in-game relationship dossiers; do not replace them with text-only biographies or untracked portraits.
 - Preserve the original five-act `nextSceneId` campaign as the short competition demo, but practical expansion may add standalone training cases outside that graph. Each main NPC should have at least three playable encounters across the campaign and training library.
 - Standalone training cases must teach a transferable workplace task, expose a hidden relationship risk, support free response in dual-model mode, retain a deterministic offline path, and end with an actionable real-world template.
+- Every non-home experience and blocking overlay must expose a clear, directly actionable “返回首页” control; icon-only close controls are not a sufficient home-navigation path.
 
 ## Durable Repository Workflow
 

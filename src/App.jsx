@@ -12,6 +12,7 @@ import {
   FilmStrip,
   Handshake,
   Headphones,
+  House,
   IdentificationCard,
   PaperPlaneTilt,
   Sparkle,
@@ -153,7 +154,7 @@ function LocalizationReview({ feedback }) {
   );
 }
 
-function ActPrelude({ cinematic, stage, onEnter }) {
+function ActPrelude({ cinematic, stage, onEnter, onHome }) {
   const shot = cinematic.establishing;
   return (
     <div
@@ -166,7 +167,13 @@ function ActPrelude({ cinematic, stage, onEnter }) {
       <div className="cinematic-backdrop" role="img" aria-label={shot.imageAlt} />
       <div className="cinematic-vignette" />
       <section className="prelude-card">
-        <div className="cinematic-index">ACT {String(stage).padStart(2, "0")} / 05</div>
+        <div className="prelude-toolbar">
+          <div className="cinematic-index">ACT {String(stage).padStart(2, "0")} / 05</div>
+          <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+            <House weight="duotone" aria-hidden="true" />
+            返回首页
+          </button>
+        </div>
         <span>{shot.eyebrow}</span>
         <h2 id="prelude-title">{shot.title}</h2>
         <p>{shot.copy}</p>
@@ -179,7 +186,7 @@ function ActPrelude({ cinematic, stage, onEnter }) {
   );
 }
 
-function CharacterDossier({ activeIndex, onChange, onClose }) {
+function CharacterDossier({ activeIndex, onChange, onClose, onHome }) {
   const character = characterDossiers[activeIndex];
   return (
     <div className="dossier-layer" role="dialog" aria-modal="true" aria-labelledby="dossier-title">
@@ -189,9 +196,16 @@ function CharacterDossier({ activeIndex, onChange, onClose }) {
             <span>RELATIONSHIP INTELLIGENCE</span>
             <h2 id="dossier-title">人物档案</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭人物档案">
-            <X weight="bold" />
-          </button>
+          <div className="overlay-header-actions">
+            <button className="text-button" type="button" onClick={onClose}>
+              <X weight="bold" aria-hidden="true" />
+              <span>返回训练</span>
+            </button>
+            <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+              <House weight="duotone" aria-hidden="true" />
+              返回首页
+            </button>
+          </div>
         </header>
         <div className="dossier-tabs" role="tablist" aria-label="选择人物">
           {characterDossiers.map((item, index) => (
@@ -254,6 +268,7 @@ function Aftermath({
   onIndexChange,
   onAdvance,
   onClose,
+  onHome,
 }) {
   const items = [
     {
@@ -280,9 +295,16 @@ function Aftermath({
             <span>现场后果 · {index + 1}/{items.length}</span>
             <strong>{scene.chapter}</strong>
           </div>
-          <button className="text-button" type="button" onClick={onClose}>
-            返回复盘
-          </button>
+          <div className="overlay-header-actions">
+            <button className="text-button" type="button" onClick={onClose}>
+              <CaretLeft weight="bold" aria-hidden="true" />
+              <span>返回复盘</span>
+            </button>
+            <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+              <House weight="duotone" aria-hidden="true" />
+              返回首页
+            </button>
+          </div>
         </header>
         <div className="aftermath-visual">
           {item.type === "reaction" ? (
@@ -398,7 +420,7 @@ function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
   );
 }
 
-function Ending({ status, history, onRestart }) {
+function Ending({ status, history, onRestart, onHome }) {
   const average = Math.round(
     Object.values(status).reduce((sum, value) => sum + value, 0) /
       Object.values(status).length,
@@ -447,9 +469,14 @@ function Ending({ status, history, onRestart }) {
             ))}
           </ul>
         </div>
-        <button className="primary-cta" type="button" onClick={onRestart}>
-          <ArrowCounterClockwise weight="bold" aria-hidden="true" /> 再演练一次
-        </button>
+        <div className="ending-actions">
+          <button className="secondary-cta" type="button" onClick={onHome}>
+            <House weight="duotone" aria-hidden="true" /> 返回首页
+          </button>
+          <button className="primary-cta" type="button" onClick={onRestart}>
+            <ArrowCounterClockwise weight="bold" aria-hidden="true" /> 再演练一次
+          </button>
+        </div>
       </section>
     </div>
   );
@@ -699,20 +726,41 @@ export function App() {
     setLiveMessage("返回情境训练库");
   }
 
-  function closePracticeLibrary() {
+  function returnHome() {
+    const wasPractice = experience === "practice";
+    const campaignSession = wasPractice && !demoMode ? readSession() : null;
+
     setShowPracticeLibrary(false);
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
     setShowCustomScenario(false);
+    setShowPrelude(false);
+    setShowDossiers(false);
+    setShowAftermath(false);
+    setShowGlossary(false);
     setExperience("campaign");
     setStarted(false);
-    setStatus(savedSession?.status ?? initialStatus);
-    setSceneId(savedSession?.sceneId ?? scenes[0].id);
-    setMode(savedSession?.mode ?? "story");
-    setHistory(savedSession?.history ?? []);
-    setIsEnded(savedSession?.isEnded ?? false);
-    setSelected(null);
-    setResolvedTurn(null);
+
+    if (wasPractice) {
+      setStatus(campaignSession?.status ?? initialStatus);
+      setSceneId(campaignSession?.sceneId ?? scenes[0].id);
+      setMode(campaignSession?.mode ?? "story");
+      setHistory(campaignSession?.history ?? []);
+      setSelected(null);
+      setResolvedTurn(null);
+      setFreeText("");
+      setSubmittedText("");
+      setResumeAvailable(hasMeaningfulProgress(campaignSession));
+    } else {
+      setResumeAvailable(
+        hasMeaningfulProgress({ sceneId, status, history, mode, isEnded: false }),
+      );
+    }
+
+    setIsEnded(false);
+    setAftermathIndex(0);
+    setPracticeScore(0);
+    setPracticeRubric(null);
     setLiveMessage("已返回主菜单");
   }
 
@@ -827,6 +875,17 @@ export function App() {
           >
             <ArrowCounterClockwise weight="duotone" />
           </button>
+          {started && (
+            <button
+              className="home-button topbar-home"
+              type="button"
+              onClick={returnHome}
+              aria-label="返回首页"
+            >
+              <House weight="duotone" aria-hidden="true" />
+              <span>首页</span>
+            </button>
+          )}
           {experience === "practice" && (
             <button
               className="library-button"
@@ -1016,6 +1075,7 @@ export function App() {
           cinematic={cinematic}
           stage={scene.stage}
           onEnter={() => setShowPrelude(false)}
+          onHome={returnHome}
         />
       )}
       {showDossiers && (
@@ -1023,6 +1083,7 @@ export function App() {
           activeIndex={dossierIndex}
           onChange={setDossierIndex}
           onClose={() => setShowDossiers(false)}
+          onHome={returnHome}
         />
       )}
       {experience === "campaign" && showAftermath && resolvedTurn && cinematic && (
@@ -1034,6 +1095,7 @@ export function App() {
           onIndexChange={setAftermathIndex}
           onAdvance={advanceStory}
           onClose={() => setShowAftermath(false)}
+          onHome={returnHome}
         />
       )}
       {showPracticeLibrary && (
@@ -1041,7 +1103,7 @@ export function App() {
           scenarios={practiceScenarios}
           progress={practiceProgress}
           onSelect={selectPracticeScenario}
-          onClose={closePracticeLibrary}
+          onHome={returnHome}
         />
       )}
       {showPracticeBrief && experience === "practice" && (
@@ -1052,6 +1114,7 @@ export function App() {
             setLiveMessage("训练开始");
           }}
           onBack={returnToPracticeLibrary}
+          onHome={returnHome}
         />
       )}
       {showPracticeResult && experience === "practice" && resolvedTurn && practiceRubric && (
@@ -1063,20 +1126,14 @@ export function App() {
           sources={getKnowledgeSources(scene.sourceIds)}
           onRetry={retryPractice}
           onLibrary={returnToPracticeLibrary}
+          onHome={returnHome}
         />
       )}
       {showCustomScenario && (
-        <CustomScenarioExperience
-          onClose={() => {
-            setShowCustomScenario(false);
-            setStarted(false);
-            setExperience("campaign");
-            setLiveMessage("已返回主菜单");
-          }}
-        />
+        <CustomScenarioExperience onHome={returnHome} />
       )}
-      {experience === "campaign" && isEnded && (
-        <Ending status={status} history={history} onRestart={restart} />
+      {experience === "campaign" && started && isEnded && (
+        <Ending status={status} history={history} onRestart={restart} onHome={returnHome} />
       )}
     </main>
   );

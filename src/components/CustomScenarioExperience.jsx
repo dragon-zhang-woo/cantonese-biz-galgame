@@ -7,13 +7,13 @@ import {
   Copy,
   EyeSlash,
   FileText,
+  House,
   LockKey,
   PaperPlaneTilt,
   ShieldCheck,
   Sparkle,
   Target,
   WarningCircle,
-  X,
 } from "@phosphor-icons/react";
 import { initialStatus } from "../data/scenes.js";
 import { evaluateBehavior } from "../services/behaviorRubric.js";
@@ -101,7 +101,7 @@ function Intake({
   rounds,
   onRounds,
   onCompose,
-  onClose,
+  onHome,
   isLoading,
   error,
 }) {
@@ -114,8 +114,9 @@ function Intake({
           <h2 id="custom-intake-title">把现实困难变成安全练习</h2>
           <p>说清发生了什么，系统只保留匿名后的任务、关系、冲突和目标。</p>
         </div>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="关闭现实情境">
-          <X weight="bold" />
+        <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+          <House weight="duotone" aria-hidden="true" />
+          返回首页
         </button>
       </header>
 
@@ -189,15 +190,16 @@ function Intake({
   );
 }
 
-function Prepared({ scenario, onStart, onBack, onClose }) {
+function Prepared({ scenario, onStart, onBack, onHome }) {
   return (
     <section className="custom-prepared" aria-labelledby="custom-prepared-title">
       <header>
         <button className="text-button" type="button" onClick={onBack}>
           <ArrowLeft weight="bold" /> 重新描述
         </button>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="关闭现实情境">
-          <X weight="bold" />
+        <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+          <House weight="duotone" aria-hidden="true" />
+          返回首页
         </button>
       </header>
       <div className="custom-prepared__hero">
@@ -275,7 +277,7 @@ function Training({
   onSubmit,
   onNext,
   isLoading,
-  onClose,
+  onHome,
 }) {
   return (
     <section className="custom-training" aria-labelledby="custom-training-title">
@@ -289,8 +291,9 @@ function Training({
           <h2 id="custom-training-title">{scene.chapter}</h2>
           <small>{scene.location}</small>
         </div>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="退出现实情境训练">
-          <X weight="bold" />
+        <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+          <House weight="duotone" aria-hidden="true" />
+          返回首页
         </button>
       </header>
       <div className="custom-training__body">
@@ -366,7 +369,7 @@ function Training({
   );
 }
 
-function Result({ scenario, responses, rubric, onRetry, onClose }) {
+function Result({ scenario, responses, rubric, onRetry, onHome }) {
   const language = responses.reduce(
     (totals, response) => ({
       naturalness: totals.naturalness + response.turn.localization.naturalness,
@@ -392,8 +395,9 @@ function Result({ scenario, responses, rubric, onRetry, onClose }) {
             行为表现 {rubric.total}/{rubric.max}
           </span>
         </div>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="关闭复盘">
-          <X weight="bold" />
+        <button className="home-button overlay-home-button" type="button" onClick={onHome}>
+          <House weight="duotone" aria-hidden="true" />
+          返回首页
         </button>
       </header>
 
@@ -461,6 +465,10 @@ function Result({ scenario, responses, rubric, onRetry, onClose }) {
       </div>
 
       <footer>
+        <button className="secondary-cta custom-result__home" type="button" onClick={onHome}>
+          <House weight="duotone" aria-hidden="true" />
+          返回首页
+        </button>
         {pressureLevels.map((level) => (
           <button
             key={level}
@@ -477,7 +485,7 @@ function Result({ scenario, responses, rubric, onRetry, onClose }) {
   );
 }
 
-export function CustomScenarioExperience({ onClose }) {
+export function CustomScenarioExperience({ onHome }) {
   const [phase, setPhase] = useState("intake");
   const [description, setDescription] = useState("");
   const [pressure, setPressure] = useState("直接");
@@ -590,7 +598,7 @@ export function CustomScenarioExperience({ onClose }) {
           rounds={rounds}
           onRounds={setRounds}
           onCompose={() => compose()}
-          onClose={onClose}
+          onHome={onHome}
           isLoading={isLoading}
           error={error}
         />
@@ -600,7 +608,7 @@ export function CustomScenarioExperience({ onClose }) {
           scenario={scenario}
           onStart={startTraining}
           onBack={() => setPhase("intake")}
-          onClose={onClose}
+          onHome={onHome}
         />
       )}
       {phase === "training" && scenario && scene && (
@@ -614,7 +622,7 @@ export function CustomScenarioExperience({ onClose }) {
           onSubmit={submitRound}
           onNext={advanceRound}
           isLoading={isLoading}
-          onClose={onClose}
+          onHome={onHome}
         />
       )}
       {phase === "result" && scenario && responses.length > 0 && (
@@ -623,7 +631,7 @@ export function CustomScenarioExperience({ onClose }) {
           responses={responses}
           rubric={rubric}
           onRetry={retryAtPressure}
-          onClose={onClose}
+          onHome={onHome}
         />
       )}
     </div>
