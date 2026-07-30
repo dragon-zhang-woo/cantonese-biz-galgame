@@ -151,6 +151,7 @@ function Intake({
               key={level}
               type="button"
               className={pressure === level ? "is-active" : ""}
+              aria-pressed={pressure === level}
               onClick={() => onPressure(level)}
             >
               {level}
@@ -164,6 +165,7 @@ function Intake({
               key={count}
               type="button"
               className={rounds === count ? "is-active" : ""}
+              aria-pressed={rounds === count}
               onClick={() => onRounds(count)}
             >
               {count} 轮
@@ -464,6 +466,7 @@ function Result({ scenario, responses, rubric, onRetry, onClose }) {
             key={level}
             className={level === scenario.pressure ? "secondary-cta is-active" : "secondary-cta"}
             type="button"
+            aria-pressed={level === scenario.pressure}
             onClick={() => onRetry(level)}
           >
             {level === scenario.pressure ? `重练${level}版` : `改成${level}版`}

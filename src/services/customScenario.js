@@ -85,6 +85,14 @@ function replaceAndCount(value, expression, label, state) {
   });
 }
 
+function replaceWithPrefixAndCount(value, expression, label, state) {
+  return value.replace(expression, (_match, prefix) => {
+    state.count += 1;
+    if (!state.categories.includes(label)) state.categories.push(label);
+    return `${prefix}[${label}]`;
+  });
+}
+
 export function sanitizeCustomDescription(value) {
   const state = { count: 0, categories: [] };
   let text = value.replace(/\s+/g, " ").trim().slice(0, CUSTOM_SCENARIO_MAX_LENGTH);
@@ -109,6 +117,12 @@ export function sanitizeCustomDescription(value) {
   text = replaceAndCount(
     text,
     /(公司|客户|机构|项目)(叫|是|名称为)([\u4e00-\u9fffA-Za-z0-9]{2,24})/g,
+    "机构名称",
+    state,
+  );
+  text = replaceWithPrefixAndCount(
+    text,
+    /(在|来自)([\u4e00-\u9fffA-Za-z0-9]{2,20}(?:公司|集团|科技|银行|学校|机构|中心))(?=工作|任职|负责|的|，|,|。)/g,
     "机构名称",
     state,
   );
@@ -189,6 +203,7 @@ function localCompose(description, pressure, rounds, redaction) {
 }
 
 function mapScenario(payload, clientRedaction) {
+  const serverRedaction = payload.redaction ?? { count: 0, categories: [] };
   return {
     id: payload.id,
     title: payload.title,
@@ -205,7 +220,15 @@ function mapScenario(payload, clientRedaction) {
     fallbackScenarioId: payload.fallback_scenario_id,
     background: payload.background,
     redactedDescription: payload.redacted_description,
-    redaction: clientRedaction,
+    redaction: {
+      count: clientRedaction.count + serverRedaction.count,
+      categories: [
+        ...new Set([
+          ...clientRedaction.categories,
+          ...serverRedaction.categories,
+        ]),
+      ],
+    },
     skillCards: payload.skill_cards.map((skill) => ({
       id: skill.id,
       title: skill.title,
