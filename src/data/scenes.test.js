@@ -13,7 +13,7 @@ describe("story graph", () => {
   it("keeps every scene playable with two choices", () => {
     for (const scene of scenes) {
       expect(scene.options).toHaveLength(2);
-      expect(scene.background).toMatch(/^\/assets\//);
+      expect(scene.background).toMatch(/\/assets\/[^/]+\.png$/);
       expect(getScene(scene.id)).toBe(scene);
     }
   });

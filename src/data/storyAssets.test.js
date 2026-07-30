@@ -15,12 +15,12 @@ describe("cinematic story assets", () => {
 
     scenes.forEach((scene, index) => {
       const cinematic = getCinematic(scene.id);
-      expect(cinematic.establishing.image).toMatch(/^\/assets\//);
-      expect(cinematic.reaction.image).toMatch(/^\/assets\//);
+      expect(cinematic.establishing.image).toMatch(/\/assets\/[^/]+\.png$/);
+      expect(cinematic.reaction.image).toMatch(/\/assets\/[^/]+\.png$/);
       expect(cinematic.reaction.frames).toBeGreaterThanOrEqual(3);
       expect(cinematic.inserts).toHaveLength(expectedInsertCounts[index]);
       cinematic.inserts.forEach((insert) => {
-        expect(insert.image).toMatch(/^\/assets\//);
+        expect(insert.image).toMatch(/\/assets\/[^/]+\.png$/);
       });
     });
   });
