@@ -28,11 +28,13 @@ import {
   characterDossiers,
   getCinematic,
 } from "./data/storyAssets.js";
+import { getKnowledgeSources } from "./data/knowledgeSources.js";
 import {
   PracticeBrief,
   PracticeLibrary,
   PracticeResult,
 } from "./components/PracticeExperience.jsx";
+import { CustomScenarioExperience } from "./components/CustomScenarioExperience.jsx";
 import {
   buildCustomOption,
   canSubmitFreeResponse,
@@ -49,6 +51,7 @@ import {
   readPracticeProgress,
   recordPracticeResult,
 } from "./services/practiceStore.js";
+import { evaluateBehavior } from "./services/behaviorRubric.js";
 
 const statusMeta = {
   trust: { label: "信任", Icon: Handshake },
@@ -337,7 +340,7 @@ function Aftermath({
   );
 }
 
-function IntroModal({ onStart, onPractice, onRestart, resumeStage }) {
+function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
   const canResume = Boolean(resumeStage);
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="intro-title">
@@ -351,14 +354,35 @@ function IntroModal({ onStart, onPractice, onRestart, resumeStage }) {
           <Brain weight="duotone" aria-hidden="true" />
           <span>AI 分析语境与关系后果；剧情控制始终由规则引擎掌握。</span>
         </div>
-        <button className="primary-cta" type="button" onClick={onStart}>
-          {canResume ? `继续第 ${resumeStage} 幕` : "从金钟入职"}
-          <ArrowRight weight="bold" aria-hidden="true" />
-        </button>
-        <button className="secondary-cta" type="button" onClick={onPractice}>
-          打开 7 个情境训练
-          <Brain weight="duotone" aria-hidden="true" />
-        </button>
+        <div className="intro-entry-grid">
+          <button className="intro-entry intro-entry--story" type="button" onClick={onStart}>
+            <FilmStrip weight="duotone" aria-hidden="true" />
+            <span>
+              <small>电影化入门故事</small>
+              <strong>{canResume ? `继续第 ${resumeStage} 幕` : "从金钟入职"}</strong>
+              <em>五幕稳定主线 · 完全离线</em>
+            </span>
+            <ArrowRight weight="bold" aria-hidden="true" />
+          </button>
+          <button className="intro-entry" type="button" onClick={onPractice}>
+            <Brain weight="duotone" aria-hidden="true" />
+            <span>
+              <small>专题训练手册</small>
+              <strong>按关系与技能选任务</strong>
+              <em>{practiceScenarios.length} 项官方训练 · 可筛选</em>
+            </span>
+            <ArrowRight weight="bold" aria-hidden="true" />
+          </button>
+          <button className="intro-entry intro-entry--custom" type="button" onClick={onCustom}>
+            <Sparkle weight="fill" aria-hidden="true" />
+            <span>
+              <small>我的现实情境</small>
+              <strong>把正在面对的困难拿来练</strong>
+              <em>先脱敏 · 2–3 轮受约束模拟</em>
+            </span>
+            <ArrowRight weight="bold" aria-hidden="true" />
+          </button>
+        </div>
         {canResume && (
           <button className="text-button intro-reset" type="button" onClick={onRestart}>
             重新开始本次演练
@@ -367,7 +391,7 @@ function IntroModal({ onStart, onPractice, onRestart, resumeStage }) {
         <small>
           {canResume
             ? "进度仅保存在本机；不会保存 API 密钥或你的自由作答原文"
-            : "五幕主线约 5 分钟 · 单项训练约 3–5 分钟 · 支持完全离线演示"}
+            : "电影化入门 · 专题训练 · 自定义现实情境 · 支持完全离线保底"}
         </small>
       </section>
     </div>
@@ -460,7 +484,9 @@ export function App() {
   const [showPracticeLibrary, setShowPracticeLibrary] = useState(false);
   const [showPracticeBrief, setShowPracticeBrief] = useState(false);
   const [showPracticeResult, setShowPracticeResult] = useState(false);
+  const [showCustomScenario, setShowCustomScenario] = useState(false);
   const [practiceScore, setPracticeScore] = useState(0);
+  const [practiceRubric, setPracticeRubric] = useState(null);
   const [practiceProgress, setPracticeProgress] = useState(() =>
     readPracticeProgress(),
   );
@@ -491,6 +517,7 @@ export function App() {
     showPracticeLibrary ||
     showPracticeBrief ||
     showPracticeResult ||
+    showCustomScenario ||
     isEnded;
 
   useEffect(() => {
@@ -578,14 +605,13 @@ export function App() {
       },
     ]);
     if (experience === "practice") {
-      const score = Math.round(
-        ((result.localization.naturalness +
-          result.localization.politeness +
-          result.localization.businessFit) /
-          3) *
-          10,
-      );
+      const rubric = evaluateBehavior({
+        text: option.text,
+        option,
+      });
+      const score = rubric.percent;
       setPracticeScore(score);
+      setPracticeRubric(rubric);
       setPracticeProgress(
         recordPracticeResult({
           scenarioId: scene.id,
@@ -621,6 +647,7 @@ export function App() {
     setShowAftermath(false);
     setShowPracticeResult(false);
     setPracticeScore(0);
+    setPracticeRubric(null);
   }
 
   function openPracticeLibrary() {
@@ -634,6 +661,17 @@ export function App() {
     setShowPracticeLibrary(true);
     setIsEnded(false);
     setLiveMessage("已打开情境训练库");
+  }
+
+  function openCustomScenario() {
+    setStarted(true);
+    setShowPrelude(false);
+    setShowAftermath(false);
+    setShowPracticeLibrary(false);
+    setShowPracticeBrief(false);
+    setShowPracticeResult(false);
+    setShowCustomScenario(true);
+    setLiveMessage("已打开我的现实情境");
   }
 
   function selectPracticeScenario(scenario) {
@@ -665,6 +703,7 @@ export function App() {
     setShowPracticeLibrary(false);
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
+    setShowCustomScenario(false);
     setExperience("campaign");
     setStarted(false);
     setStatus(savedSession?.status ?? initialStatus);
@@ -717,7 +756,9 @@ export function App() {
     setShowPracticeLibrary(false);
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
+    setShowCustomScenario(false);
     setPracticeScore(0);
+    setPracticeRubric(null);
     setResumeAvailable(false);
     setLiveMessage("演练已重新开始");
   }
@@ -965,6 +1006,7 @@ export function App() {
             setShowPrelude(true);
           }}
           onPractice={openPracticeLibrary}
+          onCustom={openCustomScenario}
           onRestart={restart}
           resumeStage={resumeAvailable ? scene.stage : null}
         />
@@ -1012,13 +1054,25 @@ export function App() {
           onBack={returnToPracticeLibrary}
         />
       )}
-      {showPracticeResult && experience === "practice" && resolvedTurn && (
+      {showPracticeResult && experience === "practice" && resolvedTurn && practiceRubric && (
         <PracticeResult
           scenario={scene}
           turn={resolvedTurn}
           score={practiceScore}
+          rubric={practiceRubric}
+          sources={getKnowledgeSources(scene.sourceIds)}
           onRetry={retryPractice}
           onLibrary={returnToPracticeLibrary}
+        />
+      )}
+      {showCustomScenario && (
+        <CustomScenarioExperience
+          onClose={() => {
+            setShowCustomScenario(false);
+            setStarted(false);
+            setExperience("campaign");
+            setLiveMessage("已返回主菜单");
+          }}
         />
       )}
       {experience === "campaign" && isEnded && (

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "priority-conflict",
+    "relation": "上司",
+    "task": "优先级协商",
+    "channel": "当面",
+    "keywords": ["两件", "同时", "优先", "来不及", "都要今天"],
+    "skillIds": ["negotiate-priority", "close-the-loop"],
+    "fallbackScenarioId": "practice-mrs-ho-priority-conflict",
+    "npc": {"speaker": "何太", "role": "部门直属经理"},
+    "background": "/assets/practice-mrs-ho-priority-conflict-v01.png"
+  },
+  {
+    "id": "ambiguous-brief",
+    "relation": "上司",
+    "task": "任务澄清",
+    "channel": "当面",
+    "keywords": ["尽快", "跟一下", "不清楚", "格式", "导师", "方案"],
+    "skillIds": ["clarify-ambiguous-task", "close-the-loop"],
+    "fallbackScenarioId": "practice-vincent-clarify-brief",
+    "npc": {"speaker": "Vincent 梁志诚", "role": "项目带教经理"},
+    "background": "/assets/practice-vincent-clarify-brief-v01.png"
+  },
+  {
+    "id": "delivery-risk",
+    "relation": "上司",
+    "task": "风险汇报",
+    "channel": "即时消息",
+    "keywords": ["延期", "延迟", "交付", "失败", "出错", "坏消息", "风险", "赶不上"],
+    "skillIds": ["communicate-bad-news", "manage-client-expectation"],
+    "fallbackScenarioId": "practice-vincent-bad-news",
+    "npc": {"speaker": "Vincent 梁志诚", "role": "项目带教经理"},
+    "background": "/assets/practice-vincent-bad-news-v01.png"
+  },
+  {
+    "id": "scope-request",
+    "relation": "客户",
+    "task": "范围控制",
+    "channel": "会议",
+    "keywords": ["加需求", "免费", "顺便", "额外", "改范围"],
+    "skillIds": ["control-scope", "manage-client-expectation"],
+    "fallbackScenarioId": "practice-mrs-ho-scope-creep",
+    "npc": {"speaker": "何太", "role": "部门直属经理"},
+    "background": "/assets/practice-mrs-ho-scope-creep-v01.png"
+  },
+  {
+    "id": "soft-follow-up",
+    "relation": "跨部门伙伴",
+    "task": "催进度",
+    "channel": "即时消息",
+    "keywords": ["跟进", "催", "没回复", "未回复", "得闲", "有空"],
+    "skillIds": ["follow-up-softly", "close-the-loop"],
+    "fallbackScenarioId": "practice-ah-long-soft-followup",
+    "npc": {"speaker": "阿朗", "role": "本地项目经理"},
+    "background": "/assets/practice-ah-long-soft-followup-v01.png"
+  },
+  {
+    "id": "executive-brief",
+    "relation": "客户",
+    "task": "高层汇报",
+    "channel": "会议",
+    "keywords": ["高层", "一分钟", "汇报", "简报", "结论"],
+    "skillIds": ["brief-executives", "close-the-loop"],
+    "fallbackScenarioId": "practice-chen-executive-brief",
+    "npc": {"speaker": "陈嘉敏", "role": "区域业务总监"},
+    "background": "/assets/practice-chen-executive-brief-v01.png"
+  },
+  {
+    "id": "personal-data-request",
+    "relation": "同事",
+    "task": "资料边界",
+    "channel": "邮件",
+    "keywords": ["电话", "电邮", "身份证", "名单", "员工资料", "个人信息"],
+    "skillIds": ["protect-personal-data", "close-the-loop"],
+    "fallbackScenarioId": "practice-vincent-clarify-brief",
+    "npc": {"speaker": "Vincent 梁志诚", "role": "项目带教经理"},
+    "background": "/assets/practice-vincent-clarify-brief-v01.png"
+  },
+  {
+    "id": "workplace-conflict",
+    "relation": "同事",
+    "task": "表达异议",
+    "channel": "会议",
+    "keywords": ["不同意", "冲突", "争吵", "反对", "不合理"],
+    "skillIds": ["express-disagreement", "deescalate-conflict"],
+    "fallbackScenarioId": "practice-ah-long-networking-lunch",
+    "npc": {"speaker": "阿朗", "role": "本地项目经理"},
+    "background": "/assets/practice-ah-long-networking-lunch-v01.png"
+  }
+]

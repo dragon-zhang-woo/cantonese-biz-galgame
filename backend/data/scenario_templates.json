@@ -1,0 +1,33 @@
+{
+  "pressureLevels": {
+    "温和": {
+      "promptSuffix": "对方愿意听你说明，也会给你一次澄清机会。",
+      "difficulty": "入门"
+    },
+    "直接": {
+      "promptSuffix": "对方时间有限，会追问你真正的建议和下一步。",
+      "difficulty": "进阶"
+    },
+    "高压": {
+      "promptSuffix": "对方公开质疑你的判断，并要求你立即给出取舍。",
+      "difficulty": "高压"
+    }
+  },
+  "rounds": [
+    {
+      "id": "understand",
+      "purpose": "先确认真正任务和限制",
+      "coachHint": "不要急着表态。先复述你理解的目标，并问清最影响行动的一项信息。"
+    },
+    {
+      "id": "respond",
+      "purpose": "提出兼顾任务与关系的回应",
+      "coachHint": "给出你的判断、承担和一个可执行选择，不要只描述困难。"
+    },
+    {
+      "id": "close",
+      "purpose": "把对话收束为下一步",
+      "coachHint": "明确负责人、时间点和确认方式，让双方不用继续猜。"
+    }
+  ]
+}

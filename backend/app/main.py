@@ -2,8 +2,9 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import Settings, get_settings
-from app.models.schemas import TurnRequest, TurnResponse
+from app.models.schemas import ComposedScenario, ScenarioComposeRequest, TurnRequest, TurnResponse
 from app.services.game_engine import GameEngine
+from app.services.scenario_composer import compose_scenario
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -38,6 +39,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         game_engine: GameEngine = Depends(get_engine),
     ) -> TurnResponse:
         return await game_engine.play_turn(request)
+
+    @app.post("/api/scenario/compose", response_model=ComposedScenario)
+    async def scenario_compose(request: ScenarioComposeRequest) -> ComposedScenario:
+        return compose_scenario(request)
 
     return app
 

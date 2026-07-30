@@ -86,3 +86,69 @@ class TurnResponse(ModelTurn):
         "fallback",
     ]
     localization: LocalizationFeedback
+
+
+class ScenarioComposeRequest(BaseModel):
+    description: str = Field(min_length=20, max_length=500)
+    pressure: Literal["温和", "直接", "高压"] = "直接"
+    rounds: int = Field(default=3, ge=2, le=3)
+
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class RedactionSummary(BaseModel):
+    count: int = Field(ge=0)
+    categories: list[str] = Field(default_factory=list)
+
+
+class KnowledgeSourceRef(BaseModel):
+    id: str
+    title: str
+    publisher: str
+    url: str
+    usage_note: str
+    risk_level: Literal["low", "medium", "high"]
+
+
+class SkillCardRef(BaseModel):
+    id: str
+    title: str
+    objective: str
+    steps: list[str]
+    source_ids: list[str]
+    legal_risk: Literal["low", "medium", "high"]
+
+
+class ScenarioRound(BaseModel):
+    id: str
+    purpose: str
+    npc_line_yue: str
+    npc_line_zh: str
+    coach_hint: str
+
+
+class ComposedScenario(BaseModel):
+    id: str
+    title: str
+    relation: str
+    task: str
+    channel: str
+    difficulty: str
+    pressure: Literal["温和", "直接", "高压"]
+    speaker: str
+    role: str
+    objective: str
+    hidden_risk: str
+    transfer_template: str
+    fallback_scenario_id: str
+    background: str
+    redacted_description: str
+    redaction: RedactionSummary
+    skill_cards: list[SkillCardRef] = Field(min_length=1, max_length=3)
+    sources: list[KnowledgeSourceRef] = Field(min_length=1, max_length=6)
+    rounds: list[ScenarioRound] = Field(min_length=2, max_length=3)
+    disclaimer: str
+    provider: Literal["rules+knowledge"]

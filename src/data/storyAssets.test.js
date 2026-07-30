@@ -38,9 +38,11 @@ describe("cinematic story assets", () => {
       .filter((fileName) => fileName.endsWith(".png"))
       .sort();
     const referencedFiles = [
-      ...scenes.map((scene) => scene.background.split("/").at(-1)),
-      ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
-      ...cinematicImages.map((image) => image.split("/").at(-1)),
+      ...new Set([
+        ...scenes.map((scene) => scene.background.split("/").at(-1)),
+        ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
+        ...cinematicImages.map((image) => image.split("/").at(-1)),
+      ]),
     ].sort();
 
     expect(referencedFiles).toEqual(filesOnDisk);
