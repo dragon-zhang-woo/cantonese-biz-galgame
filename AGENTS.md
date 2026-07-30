@@ -35,3 +35,9 @@ When implementing from a selected generated mock, treat that image as the source
 - The four accepted character anchor sheets power the in-game relationship dossiers; do not replace them with text-only biographies or untracked portraits.
 - Preserve the original five-act `nextSceneId` campaign as the short competition demo, but practical expansion may add standalone training cases outside that graph. Each main NPC should have at least three playable encounters across the campaign and training library.
 - Standalone training cases must teach a transferable workplace task, expose a hidden relationship risk, support free response in dual-model mode, retain a deterministic offline path, and end with an actionable real-world template.
+
+## Durable Repository Workflow
+
+- Use `develop` as the ongoing integration and development branch.
+- Keep `main` as the stable competition-submission and public-deployment branch.
+- Base future feature branches on `develop`, then promote verified release-ready work from `develop` to `main`.
