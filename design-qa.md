@@ -25,6 +25,8 @@
 - Viewports: desktop 1440 × 1024; mobile 390 × 844.
 - State: first playable scene, two response choices available, standard-story
   mode. The ending capture follows the preferred choice through all five acts.
+- Practical-library desktop, brief, result and mobile captures:
+  `C:\Users\lenovo\.codex\visualizations\2026\07\25\019f98ae-7c71-7562-906b-24be38aa9311\practice-*.png`.
 
 ## Findings
 
@@ -44,11 +46,11 @@ No actionable P0, P1, or P2 mismatches remain.
   preserve hierarchy without introducing an unrelated palette.
 - Image quality and asset fidelity: all five scenes use dedicated 1536 × 1024
   raster artwork, augmented by five establishing shots, twelve story inserts,
-  five reaction sheets and four character anchors with a consistent cinematic
-  Hong Kong business-galgame art direction. The first scene's subject, skyline,
-  crop and warm/cool balance match the selected source. All new visual slots use
-  real project raster assets rather than CSS art, handcrafted SVG, emoji or
-  placeholders.
+  five reaction sheets, four character anchors and seven practical-training
+  backgrounds with a consistent cinematic Hong Kong business-galgame art
+  direction. The first scene's subject, skyline, crop and warm/cool balance
+  match the selected source. All new visual slots use real project raster
+  assets rather than CSS art, handcrafted SVG, emoji or placeholders.
 - Copy and content: all product text is specific to the fictional workplace
   scenario. The implementation adds a fourth learning metric and longer,
   actionable choices as an intentional gameplay requirement; no prompt or
@@ -153,6 +155,27 @@ No actionable P0, P1, or P2 mismatches remain.
   26 newly accepted assets and one header. Missing provider generation IDs are
   explicitly recorded as unavailable rather than inferred.
 
+### Iteration 6 — seven-task practical training library
+
+- Added seven standalone training tasks without altering the deterministic
+  five-act campaign. Every main NPC now has at least three playable encounters
+  across the campaign and training library.
+- Desktop visual QA covered the three-column library, one task brief and the
+  completed-task report. The navy, gold, violet and cyan hierarchy, layered
+  material treatment and smooth 18–30px curves remain consistent with the
+  selected product source.
+- Mobile QA at 390 × 844 shows a single-column card library with no horizontal
+  clipping. Long task titles wrap cleanly, the progress summary remains visible
+  and every card retains a reachable primary action.
+- The live primary path completed against `DeepSeek + 港话通`: the UI rendered
+  a new NPC reaction, three localization scores, a Hong Kong rewrite, an
+  80-point task result and a transferable workplace template.
+- All seven 1536 × 1024 training backgrounds were reviewed for character
+  continuity, right-weighted composition, dialogue-safe framing, hands and
+  props, and absence of obvious text, brands, logos or watermarks.
+- The asset ledger now contains 38 data rows × 26 columns plus one header. The
+  seven new rows retain the project prompt, anchor inputs and generation IDs.
+
 ## Follow-up polish
 
 - [P3] The source uses three compact status rows while the product uses four
@@ -168,6 +191,6 @@ No actionable P0, P1, or P2 mismatches remain.
 - [x] Five-scene primary interaction completed in a real Chromium renderer.
 - [x] 390 × 844 responsive state verified.
 - [x] Browser console checked with zero errors.
-- [x] Lint, 9 frontend tests, production build and 7 API tests passed.
+- [x] Lint, 14 frontend tests, production build and 8 API tests passed.
 
 final result: passed

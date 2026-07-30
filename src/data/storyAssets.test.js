@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync } from "node:fs";
 import path from "node:path";
+import { practiceScenarios } from "./practiceScenarios.js";
 import { scenes } from "./scenes.js";
 import {
   characterDossiers,
@@ -38,6 +39,7 @@ describe("cinematic story assets", () => {
       .sort();
     const referencedFiles = [
       ...scenes.map((scene) => scene.background.split("/").at(-1)),
+      ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
       ...cinematicImages.map((image) => image.split("/").at(-1)),
     ].sort();
 

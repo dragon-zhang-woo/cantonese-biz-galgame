@@ -86,6 +86,23 @@ def test_accepts_bounded_custom_response_with_neutral_fallback() -> None:
     assert request.fallback.delta.trust == 0
 
 
+def test_accepts_practice_task_context() -> None:
+    payload = sample_request().model_dump()
+    payload["scene"].update(
+        {
+            "objective": "先确认交付物、负责人和截止时间。",
+            "hidden_risk": "只说收到，会让任务边界继续模糊。",
+            "transfer_template": "我确认一下：由我负责 X，在 Y 前交付 Z，对吗？",
+        }
+    )
+
+    request = TurnRequest.model_validate(payload)
+
+    assert request.scene.objective.startswith("先确认")
+    assert "边界" in request.scene.hidden_risk
+    assert request.scene.transfer_template.endswith("对吗？")
+
+
 def test_configures_dual_model_pipeline() -> None:
     engine = GameEngine(
         Settings(

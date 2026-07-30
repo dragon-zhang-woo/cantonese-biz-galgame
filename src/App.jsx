@@ -21,9 +21,18 @@ import {
 } from "@phosphor-icons/react";
 import { getScene, initialStatus, scenes } from "./data/scenes.js";
 import {
+  getPracticeScenario,
+  practiceScenarios,
+} from "./data/practiceScenarios.js";
+import {
   characterDossiers,
   getCinematic,
 } from "./data/storyAssets.js";
+import {
+  PracticeBrief,
+  PracticeLibrary,
+  PracticeResult,
+} from "./components/PracticeExperience.jsx";
 import {
   buildCustomOption,
   canSubmitFreeResponse,
@@ -36,6 +45,10 @@ import {
   readSession,
   writeSession,
 } from "./services/sessionStore.js";
+import {
+  readPracticeProgress,
+  recordPracticeResult,
+} from "./services/practiceStore.js";
 
 const statusMeta = {
   trust: { label: "信任", Icon: Handshake },
@@ -324,7 +337,7 @@ function Aftermath({
   );
 }
 
-function IntroModal({ onStart, onRestart, resumeStage }) {
+function IntroModal({ onStart, onPractice, onRestart, resumeStage }) {
   const canResume = Boolean(resumeStage);
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="intro-title">
@@ -342,15 +355,19 @@ function IntroModal({ onStart, onRestart, resumeStage }) {
           {canResume ? `继续第 ${resumeStage} 幕` : "从金钟入职"}
           <ArrowRight weight="bold" aria-hidden="true" />
         </button>
+        <button className="secondary-cta" type="button" onClick={onPractice}>
+          打开 7 个情境训练
+          <Brain weight="duotone" aria-hidden="true" />
+        </button>
         {canResume && (
-          <button className="secondary-cta" type="button" onClick={onRestart}>
+          <button className="text-button intro-reset" type="button" onClick={onRestart}>
             重新开始本次演练
           </button>
         )}
         <small>
           {canResume
             ? "进度仅保存在本机；不会保存 API 密钥或你的自由作答原文"
-            : "约 5 分钟 · 支持完全离线演示"}
+            : "五幕主线约 5 分钟 · 单项训练约 3–5 分钟 · 支持完全离线演示"}
         </small>
       </section>
     </div>
@@ -418,8 +435,12 @@ export function App() {
   const demoMode = new URLSearchParams(window.location.search).has("demo");
   const savedSessionRef = useRef(demoMode ? null : readSession());
   const savedSession = savedSessionRef.current;
+  const [experience, setExperience] = useState("campaign");
   const [started, setStarted] = useState(demoMode);
   const [sceneId, setSceneId] = useState(savedSession?.sceneId ?? scenes[0].id);
+  const [practiceSceneId, setPracticeSceneId] = useState(
+    practiceScenarios[0].id,
+  );
   const [status, setStatus] = useState(savedSession?.status ?? initialStatus);
   const [mode, setMode] = useState(savedSession?.mode ?? "story");
   const [selected, setSelected] = useState(null);
@@ -436,18 +457,41 @@ export function App() {
   const [dossierIndex, setDossierIndex] = useState(0);
   const [showAftermath, setShowAftermath] = useState(false);
   const [aftermathIndex, setAftermathIndex] = useState(0);
+  const [showPracticeLibrary, setShowPracticeLibrary] = useState(false);
+  const [showPracticeBrief, setShowPracticeBrief] = useState(false);
+  const [showPracticeResult, setShowPracticeResult] = useState(false);
+  const [practiceScore, setPracticeScore] = useState(0);
+  const [practiceProgress, setPracticeProgress] = useState(() =>
+    readPracticeProgress(),
+  );
   const [resumeAvailable, setResumeAvailable] = useState(
     hasMeaningfulProgress(savedSession),
   );
   const timeoutRef = useRef(null);
 
-  const scene = useMemo(() => getScene(sceneId), [sceneId]);
-  const cinematic = useMemo(() => getCinematic(sceneId), [sceneId]);
+  const scene = useMemo(
+    () =>
+      experience === "practice"
+        ? getPracticeScenario(practiceSceneId)
+        : getScene(sceneId),
+    [experience, practiceSceneId, sceneId],
+  );
+  const cinematic = useMemo(
+    () => (experience === "campaign" ? getCinematic(sceneId) : null),
+    [experience, sceneId],
+  );
   const activeLine = resolvedTurn?.npcLineYue ?? scene.npcLineYue;
   const activeTranslation =
     resolvedTurn?.npcLineZh ?? scene.npcLineZh;
   const hasBlockingLayer =
-    !started || showPrelude || showDossiers || showAftermath || isEnded;
+    !started ||
+    showPrelude ||
+    showDossiers ||
+    showAftermath ||
+    showPracticeLibrary ||
+    showPracticeBrief ||
+    showPracticeResult ||
+    isEnded;
 
   useEffect(() => {
     return () => window.clearTimeout(timeoutRef.current);
@@ -462,12 +506,31 @@ export function App() {
   }, [hasBlockingLayer]);
 
   useEffect(() => {
-    if (demoMode || !started || isLoading || (selected && !isEnded)) return;
+    if (
+      demoMode ||
+      experience !== "campaign" ||
+      !started ||
+      isLoading ||
+      (selected && !isEnded)
+    ) {
+      return;
+    }
     writeSession({ sceneId, status, history, mode, isEnded });
     setResumeAvailable(
       hasMeaningfulProgress({ sceneId, status, history, mode, isEnded }),
     );
-  }, [demoMode, history, isEnded, isLoading, mode, sceneId, selected, started, status]);
+  }, [
+    demoMode,
+    experience,
+    history,
+    isEnded,
+    isLoading,
+    mode,
+    sceneId,
+    selected,
+    started,
+    status,
+  ]);
 
   async function chooseOption(option) {
     if (selected || isLoading) return;
@@ -514,6 +577,23 @@ export function App() {
           : option.learningPoint,
       },
     ]);
+    if (experience === "practice") {
+      const score = Math.round(
+        ((result.localization.naturalness +
+          result.localization.politeness +
+          result.localization.businessFit) /
+          3) *
+          10,
+      );
+      setPracticeScore(score);
+      setPracticeProgress(
+        recordPracticeResult({
+          scenarioId: scene.id,
+          score,
+          provider,
+        }),
+      );
+    }
     setIsLoading(false);
     setLiveMessage(
       provider === "deepseek+hkchat"
@@ -528,6 +608,73 @@ export function App() {
     event.preventDefault();
     if (!canSubmitFreeResponse(freeText) || selected || isLoading) return;
     chooseOption(buildCustomOption(scene, freeText));
+  }
+
+  function resetCurrentTurn() {
+    setStatus(initialStatus);
+    setSelected(null);
+    setResolvedTurn(null);
+    setHistory([]);
+    setFreeText("");
+    setSubmittedText("");
+    setShowGlossary(false);
+    setShowAftermath(false);
+    setShowPracticeResult(false);
+    setPracticeScore(0);
+  }
+
+  function openPracticeLibrary() {
+    setStarted(true);
+    setExperience("practice");
+    setMode("ai");
+    setShowPrelude(false);
+    setShowAftermath(false);
+    setShowPracticeBrief(false);
+    setShowPracticeResult(false);
+    setShowPracticeLibrary(true);
+    setIsEnded(false);
+    setLiveMessage("已打开情境训练库");
+  }
+
+  function selectPracticeScenario(scenario) {
+    setExperience("practice");
+    setPracticeSceneId(scenario.id);
+    resetCurrentTurn();
+    setMode("ai");
+    setShowPracticeLibrary(false);
+    setShowPracticeBrief(true);
+    setLiveMessage(`已选择${scenario.chapter}`);
+  }
+
+  function retryPractice() {
+    resetCurrentTurn();
+    setMode("ai");
+    setShowPracticeBrief(true);
+    setLiveMessage("已重置当前训练");
+  }
+
+  function returnToPracticeLibrary() {
+    resetCurrentTurn();
+    setMode("ai");
+    setShowPracticeBrief(false);
+    setShowPracticeLibrary(true);
+    setLiveMessage("返回情境训练库");
+  }
+
+  function closePracticeLibrary() {
+    setShowPracticeLibrary(false);
+    setShowPracticeBrief(false);
+    setShowPracticeResult(false);
+    setExperience("campaign");
+    setStarted(false);
+    setStatus(savedSession?.status ?? initialStatus);
+    setSceneId(savedSession?.sceneId ?? scenes[0].id);
+    setMode(savedSession?.mode ?? "story");
+    setHistory(savedSession?.history ?? []);
+    setIsEnded(savedSession?.isEnded ?? false);
+    setSelected(null);
+    setResolvedTurn(null);
+    setLiveMessage("已返回主菜单");
   }
 
   function advanceStory() {
@@ -551,6 +698,7 @@ export function App() {
   function restart() {
     clearSession();
     savedSessionRef.current = null;
+    setExperience("campaign");
     setSceneId(scenes[0].id);
     setStatus(initialStatus);
     setSelected(null);
@@ -566,6 +714,10 @@ export function App() {
     setShowDossiers(false);
     setShowAftermath(false);
     setAftermathIndex(0);
+    setShowPracticeLibrary(false);
+    setShowPracticeBrief(false);
+    setShowPracticeResult(false);
+    setPracticeScore(0);
     setResumeAvailable(false);
     setLiveMessage("演练已重新开始");
   }
@@ -626,12 +778,24 @@ export function App() {
           <button
             className="icon-button"
             type="button"
-            onClick={restart}
-            aria-label="重新开始演练"
-            title="重新开始"
+            onClick={experience === "practice" ? retryPractice : restart}
+            aria-label={
+              experience === "practice" ? "重新开始当前训练" : "重新开始演练"
+            }
+            title={experience === "practice" ? "重练当前情境" : "重新开始"}
           >
             <ArrowCounterClockwise weight="duotone" />
           </button>
+          {experience === "practice" && (
+            <button
+              className="library-button"
+              type="button"
+              onClick={returnToPracticeLibrary}
+            >
+              <Brain weight="duotone" />
+              训练库
+            </button>
+          )}
           <ModeToggle mode={mode} onChange={setMode} />
         </div>
       </header>
@@ -643,6 +807,14 @@ export function App() {
       </aside>
 
       <section className="dialogue-console" aria-live="polite">
+        {experience === "practice" && (
+          <div className="practice-mission-strip">
+            <Briefcase weight="duotone" aria-hidden="true" />
+            <span>{scene.skill}</span>
+            <strong>{scene.objective}</strong>
+            <em>{scene.duration}</em>
+          </div>
+        )}
         <div className="speaker-row">
           <div>
             <span className="speaker-name">{scene.speaker}</span>
@@ -750,12 +922,20 @@ export function App() {
             className="continue-button"
             type="button"
             onClick={() => {
-              setAftermathIndex(0);
-              setShowAftermath(true);
+              if (experience === "practice") {
+                setShowPracticeResult(true);
+              } else {
+                setAftermathIndex(0);
+                setShowAftermath(true);
+              }
             }}
           >
-            <FilmStrip weight="fill" />
-            查看现场后果
+            {experience === "practice" ? (
+              <Brain weight="fill" />
+            ) : (
+              <FilmStrip weight="fill" />
+            )}
+            {experience === "practice" ? "查看任务复盘" : "查看现场后果"}
           </button>
         )}
         {isLoading && (
@@ -765,27 +945,31 @@ export function App() {
         )}
       </section>
 
-      <div className="progress-rail" aria-label={`当前第 ${scene.stage} 幕，共 ${scenes.length} 幕`}>
-        {scenes.map((item) => (
-          <span
-            key={item.id}
-            className={item.stage <= scene.stage ? "is-active" : ""}
-          />
-        ))}
-      </div>
+      {experience === "campaign" && (
+        <div className="progress-rail" aria-label={`当前第 ${scene.stage} 幕，共 ${scenes.length} 幕`}>
+          {scenes.map((item) => (
+            <span
+              key={item.id}
+              className={item.stage <= scene.stage ? "is-active" : ""}
+            />
+          ))}
+        </div>
+      )}
 
       <p className="sr-only" aria-live="polite">{liveMessage}</p>
       {!started && (
         <IntroModal
           onStart={() => {
+            setExperience("campaign");
             setStarted(true);
             setShowPrelude(true);
           }}
+          onPractice={openPracticeLibrary}
           onRestart={restart}
           resumeStage={resumeAvailable ? scene.stage : null}
         />
       )}
-      {started && showPrelude && (
+      {experience === "campaign" && started && showPrelude && cinematic && (
         <ActPrelude
           cinematic={cinematic}
           stage={scene.stage}
@@ -799,7 +983,7 @@ export function App() {
           onClose={() => setShowDossiers(false)}
         />
       )}
-      {showAftermath && resolvedTurn && (
+      {experience === "campaign" && showAftermath && resolvedTurn && cinematic && (
         <Aftermath
           scene={scene}
           cinematic={cinematic}
@@ -810,7 +994,36 @@ export function App() {
           onClose={() => setShowAftermath(false)}
         />
       )}
-      {isEnded && <Ending status={status} history={history} onRestart={restart} />}
+      {showPracticeLibrary && (
+        <PracticeLibrary
+          scenarios={practiceScenarios}
+          progress={practiceProgress}
+          onSelect={selectPracticeScenario}
+          onClose={closePracticeLibrary}
+        />
+      )}
+      {showPracticeBrief && experience === "practice" && (
+        <PracticeBrief
+          scenario={scene}
+          onEnter={() => {
+            setShowPracticeBrief(false);
+            setLiveMessage("训练开始");
+          }}
+          onBack={returnToPracticeLibrary}
+        />
+      )}
+      {showPracticeResult && experience === "practice" && resolvedTurn && (
+        <PracticeResult
+          scenario={scene}
+          turn={resolvedTurn}
+          score={practiceScore}
+          onRetry={retryPractice}
+          onLibrary={returnToPracticeLibrary}
+        />
+      )}
+      {experience === "campaign" && isEnded && (
+        <Ending status={status} history={history} onRestart={restart} />
+      )}
     </main>
   );
 }

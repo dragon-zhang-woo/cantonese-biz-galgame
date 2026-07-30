@@ -24,6 +24,9 @@ class SceneContext(BaseModel):
     npc_line_yue: str = Field(min_length=1, max_length=280)
     npc_line_zh: str = Field(min_length=1, max_length=280)
     coach_hint: str = Field(min_length=1, max_length=360)
+    objective: str = Field(default="", max_length=360)
+    hidden_risk: str = Field(default="", max_length=420)
+    transfer_template: str = Field(default="", max_length=420)
 
 
 class PlayerAction(BaseModel):
