@@ -11,7 +11,7 @@
 [90 秒演示脚本](docs/demo-script.md) ·
 [参赛说明](PROJECT_SUBMISSION.md)
 
-![CantoneseBiz 游戏界面](docs/preview.png)
+![CantoneseBiz 香港商务粤语 AI 训练宣传图](docs/preview.png)
 
 普通语言学习产品教你“怎么说”；粤商通进一步训练你在不同权力关系、
 沟通渠道与时间压力下“怎么把事情说成”。玩家的表达会触发人物反应、
