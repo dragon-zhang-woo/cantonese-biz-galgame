@@ -130,6 +130,25 @@ props, and absence of obvious text, brands, logos, signatures or watermarks.
 Rejected intermediate edits remain named in the prompt record; they were not
 copied into `public/assets`.
 
+## README promotional key visual
+
+The README hero was refreshed on 2026-07-31 to represent the current competition
+build rather than a single early gameplay screen. The final 1536×1024 visual combines
+recognizable references from the AI free-response, cinematic reaction and mobile
+interfaces in the approved navy, gold, violet and cyan system.
+
+| File | Status | Generation record | Purpose |
+|---|---|---|---|
+| `docs/preview.png` | approved | `exec-f4fd3d44-cdec-4cf2-9bcd-1349676e9b98` | Current GitHub README and hackathon promotional key visual |
+| `docs/archive/preview-v1.png` | archive | repository screenshot | Previous single-scene README preview retained for provenance |
+
+The complete prompt, four reference inputs, selection rationale and QA notes are
+recorded in
+[`docs/visual-production/README_PROMO_PROMPT.md`](docs/visual-production/README_PROMO_PROMPT.md).
+The headline and three proof labels are intentional product copy; QA checked them for
+legibility and confirmed that no unintended brand, watermark, signature or QR code was
+introduced.
+
 The 2026-07-22 onboarding prompt requested an original fictional manager in a
 Hong Kong office reception, with a right-weighted subject, blue-and-warm-gold
 cinematic lighting and a quiet lower area reserved for the game interface. The
