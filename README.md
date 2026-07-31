@@ -1,148 +1,143 @@
 # 粤商通 CantoneseBiz
 
-> 一款由职场关系后果驱动的香港商务粤语 AI 互动视觉小说。
+[![CI](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/dragon-zhang-woo/cantonese-biz-galgame)](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F4BE55.svg)](LICENSE)
+
+**在香港职场真实关系中练习商务粤语的 AI 互动视觉小说。**
+
+[本地运行](#本地运行) ·
+[下载 v1.0.0](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases/tag/v1.0.0) ·
+[90 秒演示脚本](docs/demo-script.md) ·
+[参赛说明](PROJECT_SUBMISSION.md)
 
 ![CantoneseBiz 游戏界面](docs/preview.png)
 
-**在线演示：**
-[dragon-zhang-woo.github.io/cantonese-biz-galgame](https://dragon-zhang-woo.github.io/cantonese-biz-galgame/)
+普通语言学习产品教你“怎么说”；粤商通进一步训练你在不同权力关系、
+沟通渠道与时间压力下“怎么把事情说成”。玩家的表达会触发人物反应、
+关系变化与可解释复盘，而不是只得到一句语法评分。
 
-玩家不是背诵词汇，而是在入职报到、客户初会、同事试探、危机补救和经理复盘中做沟通
-决策。首页提供电影式主线、可筛选训练手册和自定义真实情境三条路径；AI
-教练解释为什么一句话在语法上正确，却可能在香港商务语境中失效。
+本项目是 **2026 火鸟 AI 黑客松开放赛道**的原创可运行作品。
 
-这是为 2026 火鸟 AI 黑客松开放赛道制作的原创可运行原型。
+## 三种训练入口
 
-## 为什么值得做
+| 入口 | 适合体验 | 主要能力 |
+| --- | --- | --- |
+| **电影式主线** | 快速理解产品与世界观 | 五幕固定故事图、人物关系后果、结局学习画像；无网络也可完整通关 |
+| **训练手册** | 针对具体职场任务练习 | 12 项独立任务，可按关系、技能、压力、难度和渠道筛选 |
+| **我的真实情境** | 带入自己的工作难题 | 浏览器先脱敏，生成 3–6 轮训练；完成两轮后可随时收口复盘 |
 
-传统语言学习产品擅长教“怎么说”，却很少训练“在什么关系里、以
-什么方式说”。CantoneseBiz 把语言、语境、关系和后果放进同一条
-可演示闭环：
+覆盖的任务包括：澄清需求、协商优先级、沟通坏消息、表达异议、柔性跟进、
+范围控制、会议纪要、个人资料边界、利益冲突、纠正性反馈与高层汇报。
 
-```text
-真实职场场景 → 玩家选择 → NPC 反应 → 关系数值变化 → AI 教练复盘
-```
-
-## 当前可玩内容
-
-- 五幕完整剧情：金钟入职、中环客户初会、办公室茶水间、危机补救、湾仔茶餐厅；
-- 十二个可独立练习的真实工作任务，覆盖任务澄清、优先级协商、坏消息沟通、
-  表达异议、会议纪要、个人资料边界、利益冲突和纠正性反馈等；
-- 训练手册支持按关系、技能、压力、难度和沟通渠道筛选；
-- 自定义情境支持输入 20–1000 字真实难题，在浏览器先隐私脱敏，自选关系、
-  渠道、重点、压力和 3–6 轮建议长度；两轮后可随时收口复盘；
-- DeepSeek 的真实 NPC 反应会直接成为下一轮台词，并携带完整匿名历史；
-  港话通逐轮独立检查自然度、礼貌度、商务适配和港式改写；
-- API 不可用时自动匹配最近的预置场景，并明确显示双模型或本地保底来源；
-- 四名主要 NPC 在主线与训练库中各有至少三次可玩互动，不再只是一次性角色；
-- 每项训练先说明任务与隐藏关系风险，结束后给出双模型反馈、港式改写、
-  六维行为量表和可直接带回现实工作的复用句式；
-- 内置 20 张技能卡和 31 条香港官方来源，反馈可展开查看依据；
-- 每幕拥有独立地点建立镜头，进入对话前先交代时间、地点与关系压力；
-- 每次选择后可查看人物反应谱和 2–3 个剧情证据镜头，把抽象分数变化变成
-  可见的关系后果；
-- 四名主要 NPC 的人物档案，包括角色定位、关系信号和统一视觉锚点；
-- 四维状态：信任、专业度、粤语自然度、文化适配；
-- 两种运行方式：
-  - **标准剧情**：完全离线、固定且可重复；
-  - **AI 即兴**：DeepSeek 生成受约束的角色反应，港话通负责香港商务
-    语境纠偏；
-- AI 即兴支持玩家直接输入粤语、普通话或中英夹杂的自由回应，不限于
-  预写选项；
-- 本地化复盘：自然度、礼貌度、商务适配、港式改写与解释；
-- 浏览器粤语朗读与术语提示；
-- 模型、余额、网络或 JSON 失败时自动回退，不中断剧情；
-- 相同回合短期缓存，重复演示无需再次等待模型；
-- 本机保存幕次、分数与学习点，刷新后可继续；自由作答原文和 API
-  密钥不进入存档；
-- 结局页与个人学习画像；
-- 桌面与 390px 手机布局。
-
-## AI 为什么是核心能力
-
-模型不是给固定 Galgame “套一层聊天框”。它承担两个难以靠穷举
-脚本覆盖的任务：
-
-1. 在人物利益、关系和当前状态约束下表演即时反应；
-2. 区分语言正确性与社会效果，解释表达在具体职场语境中的后果。
-
-剧情图、允许跳转和最终数值控制仍由确定性程序掌握。这个设计同时
-提升可解释性和现场稳定性。
-
-## 架构
+## AI 如何参与
 
 ```text
-React/Vite 视觉小说 UI
+玩家选择或自由作答
         │
-        ├── 标准剧情模式 ── 本地五幕故事图
-        ├── 情境训练库 ───── 十二项任务 + 多维筛选 + 六维量表
-        ├── 自定义情境 ───── 浏览器脱敏 + 3–6 轮动态会话 + 可提前收口
-        │
-        └── AI 即兴模式 ─── FastAPI
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │                           │
-              DeepSeek Provider        HKChat Provider
-                 角色反应                本地化纠偏
-                    └──────────┬──────────┘
-                         独立失败降级
-                              │
-                    结构化校验 + 内存缓存
-                              │
-                         静态可靠回退
+        ├── DeepSeek：在人物、利益与当前关系约束下生成 NPC 反应
+        ├── 港话通：独立检查自然度、礼貌度、商务适配并给出港式改写
+        └── 程序：校验输出、限制分数变化、控制故事节点与失败回退
 ```
 
-FastAPI 会验证模型输出、限制每个分数变化范围，并在异常时返回预写
-结果。自定义情境编排器从受控模板、技能卡和来源库组合训练边界；每轮只允许
-模型在当前匿名情境和历史内生成下一句角色反应、进度信号与反馈，不可以创建
-任意故事节点或修改主线故事图。
+AI 负责难以穷举的角色表演和语境解释；程序始终掌握故事图、训练边界、
+数值变化和存档。任何一个模型、网络或额度不可用时，系统都会明确显示来源并
+回退到本地内容，不中断训练。
+
+## 核心特性
+
+- **关系后果可见**：追踪信任、专业度、粤语自然度与文化适配，并用人物反应和
+  剧情证据解释变化；
+- **自由表达**：支持粤语、普通话与中英夹杂输入，不局限于预写选项；
+- **任务导向复盘**：按目标清晰、具体性、主人翁意识、关系维护、风险透明和
+  下一步六个维度评分，并提供可复用句式；
+- **来源可追溯**：训练技能与香港劳工处、平机会、私隐专员公署和廉政公署等
+  官方资料绑定；
+- **隐私最小化**：真实情境先在浏览器脱敏；原文、自由作答和 API 密钥不写入
+  本机存档；
+- **稳定演示**：标准剧情与预写训练路径完全离线可用，支持本机断点恢复；
+- **响应式体验**：覆盖桌面与 390px 手机布局，并提供浏览器粤语朗读。
+
+## 推荐演示路径
+
+1. 打开“我的真实情境”，输入一段不含真实姓名和机构的职场难题；
+2. 展示脱敏回执、关系与压力识别、技能卡和训练轮次；
+3. 自由回答两轮，对比 DeepSeek 人物反应与港话通语言反馈；
+4. 主动收口，查看六维量表、港式改写和现实复用模板；
+5. 返回训练手册筛选 12 项任务，再切换五幕标准剧情展示离线保底。
+
+完整现场方案见 [`docs/demo-script.md`](docs/demo-script.md)。
+
+## 技术架构
+
+```text
+React 19 + Vite 6
+├── 五幕主线与 12 项训练任务（确定性本地数据）
+├── 自定义情境（浏览器脱敏、进度与行为量表）
+└── FastAPI
+    ├── POST /api/game/turn
+    │   ├── DeepSeek Provider
+    │   └── HKChat Provider
+    └── POST /api/scenario/compose
+        └── 受控模板、技能卡与来源编排
+```
+
+后端通过 Pydantic 验证结构化输出，并为两类模型提供独立降级和短期内存缓存。
+详细设计见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 本地运行
 
-### 只运行可玩前端
+需要 Node.js 22+；AI 模式另需 Python 3.12+。
+
+### 1. 启动前端
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-即使 API 没有启动，标准剧情模式也可以完整通关。
+访问 `http://localhost:5173`。不启动后端也能体验标准剧情和本地训练路径。
 
-GitHub Pages 版本默认提供可完整通关的标准剧情；本地启动 FastAPI
-后可体验 AI 即兴模式。
-
-### 启动 AI 即兴模式
+### 2. 启动 AI 后端
 
 ```bash
 cd backend
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
 ```
 
-在 `backend/.env` 中设置：
+Windows PowerShell：
 
-```env
-AI_SCENE_PROVIDER=deepseek
-AI_LOCALIZE_PROVIDER=hkchat
-DEEPSEEK_API_KEY=your_key_here
-DEEPSEEK_MODEL=deepseek-v4-pro
-HKCHAT_API_KEY=your_key_here
-HKCHAT_MODEL=t2_hkgai-v3_fp8_1m_e7
+```powershell
+.\.venv\Scripts\python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.\.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
 ```
 
-然后启动：
+macOS / Linux：
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+./.venv/bin/python -m pip install -r requirements.txt
+cp .env.example .env
+./.venv/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
 
-前端默认连接 `http://localhost:8000`。如需修改，复制根目录
-`.env.example` 为 `.env.local` 并设置 `VITE_API_BASE_URL`。
+若要调用真实双模型，请在 `backend/.env` 填写 `DEEPSEEK_API_KEY` 与
+`HKCHAT_API_KEY`。完整 Provider、模型与 CORS 设置均有注释写在
+[`backend/.env.example`](backend/.env.example) 中。前端默认连接
+`http://localhost:8000`；可在根目录 `.env.local` 中通过
+`VITE_API_BASE_URL` 修改。
 
-## 验证
+### Docker Compose
+
+先复制 `backend/.env.example` 为 `backend/.env`，然后运行：
+
+```bash
+docker compose up --build
+```
+
+Web 位于 `http://localhost:8080`，API 位于 `http://localhost:8000`。
+
+## 测试与构建
 
 ```bash
 npm run lint
@@ -153,59 +148,43 @@ cd backend
 pytest
 ```
 
-## Docker
+GitHub Actions 会在提交到 `develop`、`main` 及相关 Pull Request 时执行同类
+前后端检查。
 
-创建 `backend/.env` 后：
+## 发行版与容器
 
-```bash
-docker compose up --build
-```
-
-前端位于 `http://localhost:8080`，API 位于
-`http://localhost:8000`。
-
-## 发行版与软件包
-
-正式版本发布在
-[GitHub Releases](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases)。
-每个版本提供可直接部署到静态服务器的 Web ZIP 及其 SHA-256 校验文件。
-
-容器镜像发布到 GitHub Container Registry：
+正式版本发布在 [GitHub Releases](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases)。
+每个版本包含可直接部署的静态 Web ZIP 与 SHA-256 校验文件。
 
 ```bash
-docker pull ghcr.io/dragon-zhang-woo/cantonese-biz-galgame:latest
-docker pull ghcr.io/dragon-zhang-woo/cantonese-biz-galgame-api:latest
+docker pull ghcr.io/dragon-zhang-woo/cantonese-biz-galgame:1.0.0
+docker pull ghcr.io/dragon-zhang-woo/cantonese-biz-galgame-api:1.0.0
 ```
 
-Web 镜像监听 80 端口，API 镜像监听 8000 端口。
+- [Web 容器软件包](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pkgs/container/cantonese-biz-galgame)
+- [API 容器软件包](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pkgs/container/cantonese-biz-galgame-api)
 
-## 演示路径
+Web 镜像监听 80 端口，API 镜像监听 8000 端口。推送 `vX.Y.Z` 标签后，
+发布工作流会自动验证项目、生成静态包，并发布语义版本与 `latest` 镜像。
 
-1. 从首页打开“我的真实情境”，输入一段已去除敏感资料的职场难题；
-2. 自选关系、渠道和重点，展示隐私处理回执、复合任务与动态场景；
-3. 连续两轮展示 DeepSeek 角色反应承接和港话通实时语言反馈，再主动收口；
-4. 展示六维行为量表、港式改写和可迁移行动模板；
-5. 返回训练手册，筛选十二项正式场景；
-6. 切回五幕标准剧情，证明网络故障不会破坏主线 Demo。
+## 项目结构
 
-更完整的 90 秒与 3 分钟脚本见
-[`docs/demo-script.md`](docs/demo-script.md)。
+| 路径 | 内容 |
+| --- | --- |
+| `src/App.jsx` | 游戏主状态与体验编排 |
+| `src/components/` | 主线、训练库、自定义情境与复盘界面 |
+| `src/data/` | 五幕剧情、12 项任务、人物与来源数据 |
+| `src/services/` | API、脱敏、评分与本机存档 |
+| `backend/app/` | FastAPI、双模型编排、校验与回退 |
+| `public/assets/` | 原创场景、角色与剧情视觉资产 |
+| `docs/` | 架构、演示、训练规格与视觉生产记录 |
 
-## 安全与边界
+## 安全、原创与许可证
 
 - 产品用于语言与职场文化练习，不提供法律、投资、医疗或雇佣决策；
 - AI 反馈是情境化学习建议，不宣称存在唯一正确的“香港表达”；
-- 应用不会持久化自定义情境原文或玩家自由作答；自定义情境会先在浏览器
-  进行姓名、机构、联系方式、地址与密钥样式脱敏；AI 即兴模式会把当前一轮文本发送
-  给配置的 DeepSeek 与港话通接口进行即时分析；
-- 角色与事件均为虚构。
-
-## 原创与许可证
-
-- 代码、故事、人物和交互结构为本项目原创；
-- 38 张正式游戏视觉资产均为项目专门生成，包括五张主场景、五张建立镜头、
-  十二张剧情插图、五组人物反应、四张角色锚点和七张训练场景；记录见
+- 角色、故事、交互与正式视觉资产均为项目原创，资产记录见
   [`ASSET_SOURCES.md`](ASSET_SOURCES.md)；
 - 第三方依赖与许可证见
   [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)；
-- 项目代码采用 MIT License。
+- 项目代码采用 [MIT License](LICENSE)。
