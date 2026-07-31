@@ -11,7 +11,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or get_settings()
     app = FastAPI(
         title=config.app_name,
-        version="0.1.0",
+        version="1.0.0",
         description="Bounded AI reaction and Cantonese workplace coaching API.",
     )
     app.add_middleware(

@@ -164,6 +164,21 @@ docker compose up --build
 前端位于 `http://localhost:8080`，API 位于
 `http://localhost:8000`。
 
+## 发行版与软件包
+
+正式版本发布在
+[GitHub Releases](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases)。
+每个版本提供可直接部署到静态服务器的 Web ZIP 及其 SHA-256 校验文件。
+
+容器镜像发布到 GitHub Container Registry：
+
+```bash
+docker pull ghcr.io/dragon-zhang-woo/cantonese-biz-galgame:latest
+docker pull ghcr.io/dragon-zhang-woo/cantonese-biz-galgame-api:latest
+```
+
+Web 镜像监听 80 端口，API 镜像监听 8000 端口。
+
 ## 演示路径
 
 1. 从首页打开“我的真实情境”，输入一段已去除敏感资料的职场难题；
