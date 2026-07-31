@@ -17,6 +17,7 @@ When implementing from a selected generated mock, treat that image as the source
 - The game must complete in standard story mode without any model or network. AI improvisation is an enhancement, never the only path.
 - All story, character, and generated visual assets must be original and recorded in `ASSET_SOURCES.md`.
 - Dialogue consoles, coaching/review panels, choices and modals use smooth restrained curves, layered translucent materials, subtle edge highlights and low-noise texture. Avoid both hard flat rectangles and oversized consumer-app bubble styling.
+- Use one bundled Simplified-Chinese-capable UI typeface across content and native controls. Keep typography to the semantic 400/500/600/700/800 weight scale; do not introduce arbitrary variable-font weights or platform-specific CJK fallbacks.
 
 ## Durable Visual Asset Decisions
 
