@@ -106,6 +106,30 @@ continuity, right-weighted composition, dialogue-safe lower framing, project
 palette, believable hands and props, and absence of obvious readable business
 copy, brands, logos, watermarks or signatures.
 
+## Dynamic custom-scenario scene batch
+
+Six additional 1536×1024 backgrounds were generated on 2026-07-31 for the
+adaptive “我的现实情境” conversation flow. They extend visual coverage beyond
+the authored practice library while keeping the same four approved fictional
+NPC anchors. Prompts and revision lineage are recorded in
+[`docs/visual-production/GPT_IMAGE_2_CUSTOM_SCENE_PROMPTS.md`](docs/visual-production/GPT_IMAGE_2_CUSTOM_SCENE_PROMPTS.md).
+
+| File | Character / context | Generation record | Gameplay purpose |
+|---|---|---|---|
+| `public/assets/custom-vincent-war-room-v01.png` | Vincent anchor + bad-news scene | `call_amx4QjgXxsKrD3AIpTKBO1PX` | Project pressure, delivery risk and resource conflict |
+| `public/assets/custom-mrs-ho-manager-office-v01.png` | Mrs Ho anchor + priority scene | `call_sqRHKM3iCSzeHR9mmQZWV7Jj` | Priorities, performance and authority boundaries |
+| `public/assets/custom-chen-client-boardroom-v01.png` | Chen anchor + executive brief scene | `call_0YTdNCkswsC9BA3NwUb7mTme` | Client negotiation, objections and scope |
+| `public/assets/custom-ah-long-open-office-v01.png` | Ah Long anchor + follow-up scene | `call_HBEYOPO1djq1td7CHqZjDAnN` | Cross-team collaboration and peer feedback |
+| `public/assets/custom-chen-video-call-v01.png` | Chen anchor + crisis scene | `call_zLyHdzszixYibMRQMAZLnTCB` | Remote reporting and live follow-up questions |
+| `public/assets/custom-mrs-ho-restaurant-v01.png` | Mrs Ho anchor + manager lunch scene | `call_NTkU12wc3vX1wfc2OgWW0LVL` | Sensitive feedback and relationship repair |
+
+Codex reviewed all six accepted files at original resolution for character
+identity, outfit continuity, Hong Kong workplace credibility, the lower 40%
+dialogue-safe area, a quiet upper-right status area, project palette, hands and
+props, and absence of obvious text, brands, logos, signatures or watermarks.
+Rejected intermediate edits remain named in the prompt record; they were not
+copied into `public/assets`.
+
 The 2026-07-22 onboarding prompt requested an original fictional manager in a
 Hong Kong office reception, with a right-weighted subject, blue-and-warm-gold
 cinematic lighting and a quiet lower area reserved for the game interface. The

@@ -17,6 +17,7 @@ When implementing from a selected generated mock, treat that image as the source
 - The game must complete in standard story mode without any model or network. AI improvisation is an enhancement, never the only path.
 - All story, character, and generated visual assets must be original and recorded in `ASSET_SOURCES.md`.
 - Dialogue consoles, coaching/review panels, choices and modals use smooth restrained curves, layered translucent materials, subtle edge highlights and low-noise texture. Avoid both hard flat rectangles and oversized consumer-app bubble styling.
+- Use one bundled Simplified-Chinese-capable UI typeface across content and native controls. Keep typography to the semantic 400/500/600/700/800 weight scale; do not introduce arbitrary variable-font weights or platform-specific CJK fallbacks.
 
 ## Durable Visual Asset Decisions
 
@@ -35,3 +36,14 @@ When implementing from a selected generated mock, treat that image as the source
 - The four accepted character anchor sheets power the in-game relationship dossiers; do not replace them with text-only biographies or untracked portraits.
 - Preserve the original five-act `nextSceneId` campaign as the short competition demo, but practical expansion may add standalone training cases outside that graph. Each main NPC should have at least three playable encounters across the campaign and training library.
 - Standalone training cases must teach a transferable workplace task, expose a hidden relationship risk, support free response in dual-model mode, retain a deterministic offline path, and end with an actionable real-world template.
+- Every non-home experience and blocking overlay must expose a clear, directly actionable “返回首页” control; icon-only close controls are not a sufficient home-navigation path.
+- Treat “我的现实情境” as the long-term core training surface, not a small template picker: preserve user control over relationship, channel, focus, pressure and session length.
+- Custom training must carry the anonymized conversation history across rounds; the latest bounded DeepSeek NPC reaction becomes the next turn rather than resetting to a generic scripted prompt.
+- Show DeepSeek role simulation and 港话通 language review as distinct per-turn evidence, disclose fallback use, and let the learner end after a useful closure instead of forcing every planned round.
+- Adaptive custom-scene art uses the approved six-scene batch recorded in `GPT_IMAGE_2_CUSTOM_SCENE_PROMPTS.md`; keep relationship, speaker and background identity aligned.
+
+## Durable Repository Workflow
+
+- Use `develop` as the ongoing integration and development branch.
+- Keep `main` as the stable competition-submission and public-deployment branch.
+- Base future feature branches on `develop`, then promote verified release-ready work from `develop` to `main`.
