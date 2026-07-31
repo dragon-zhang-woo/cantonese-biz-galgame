@@ -103,6 +103,34 @@ def test_accepts_practice_task_context() -> None:
     assert request.scene.transfer_template.endswith("对吗？")
 
 
+def test_accepts_bounded_custom_conversation_history() -> None:
+    payload = sample_request().model_dump()
+    payload["scene"].update(
+        {
+            "scenario_summary": "匿名的跨部门延期与范围协商。",
+            "round_index": 2,
+            "round_limit": 5,
+            "history": [
+                {
+                    "round_index": 1,
+                    "npc_line_yue": "你想我确认咩？",
+                    "npc_line_zh": "你希望我确认什么？",
+                    "player_text": "先冻结新增范围，再确认补救时间表。",
+                    "npc_reaction_yue": "边个负责？",
+                    "npc_reaction_zh": "谁负责？",
+                    "coach_feedback": "方向清楚，但要补负责人。",
+                }
+            ],
+        }
+    )
+
+    request = TurnRequest.model_validate(payload)
+
+    assert request.scene.round_index == 2
+    assert request.scene.round_limit == 5
+    assert request.scene.history[0].player_text.startswith("先冻结")
+
+
 def test_configures_dual_model_pipeline() -> None:
     engine = GameEngine(
         Settings(
@@ -137,6 +165,7 @@ def test_turn_response_accepts_hkchat_provider() -> None:
 
     assert response.provider == "deepseek+hkchat"
     assert response.localization.naturalness == 8
+    assert response.relationship_signal == "稳定"
 
 
 @pytest.mark.asyncio

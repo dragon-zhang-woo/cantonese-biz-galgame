@@ -35,6 +35,11 @@ When implementing from a selected generated mock, treat that image as the source
 - The four accepted character anchor sheets power the in-game relationship dossiers; do not replace them with text-only biographies or untracked portraits.
 - Preserve the original five-act `nextSceneId` campaign as the short competition demo, but practical expansion may add standalone training cases outside that graph. Each main NPC should have at least three playable encounters across the campaign and training library.
 - Standalone training cases must teach a transferable workplace task, expose a hidden relationship risk, support free response in dual-model mode, retain a deterministic offline path, and end with an actionable real-world template.
+- Every non-home experience and blocking overlay must expose a clear, directly actionable “返回首页” control; icon-only close controls are not a sufficient home-navigation path.
+- Treat “我的现实情境” as the long-term core training surface, not a small template picker: preserve user control over relationship, channel, focus, pressure and session length.
+- Custom training must carry the anonymized conversation history across rounds; the latest bounded DeepSeek NPC reaction becomes the next turn rather than resetting to a generic scripted prompt.
+- Show DeepSeek role simulation and 港话通 language review as distinct per-turn evidence, disclose fallback use, and let the learner end after a useful closure instead of forcing every planned round.
+- Adaptive custom-scene art uses the approved six-scene batch recorded in `GPT_IMAGE_2_CUSTOM_SCENE_PROMPTS.md`; keep relationship, speaker and background identity aligned.
 
 ## Durable Repository Workflow
 

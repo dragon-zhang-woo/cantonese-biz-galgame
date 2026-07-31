@@ -26,6 +26,13 @@ Requirements:
   do not repeat the NPC line from the scene input.
 - npc_line_zh must be a faithful Standard Chinese translation of
   npc_line_yue; the two lines must express the same reaction.
+- Stay in the supplied speaker and role. Never swap to another character.
+- Treat scene.history as the authoritative conversation so far. Continue from
+  its latest unresolved point; do not restart the exercise or repeat a question
+  that the player has already answered.
+- Respond to the player's actual wording. Challenge vague claims, acknowledge
+  concrete commitments, and ask at most one focused follow-up question.
+- Match the configured pressure while remaining believable and professional.
 - Never claim one wording is universally correct.
 - Coach feedback must distinguish linguistic correctness from social effect.
 - When the scene includes objective, hidden_risk and transfer_template, assess
@@ -42,6 +49,13 @@ Requirements:
 - When choice_id is "custom-response", assess the player's wording and intent
   independently. The fallback is deliberately neutral and must not constrain
   your score direction.
+- task_progress is 0-100 and measures how close the practical conversation is
+  to a clear outcome, owner, timing and confirmation path.
+- relationship_signal must be exactly 改善, 稳定 or 紧张.
+- should_close is true only when the conversation has reached a usable real-
+  world agreement or when continuing would merely repeat the same issue.
+- next_move is a short private coaching instruction for the player's next turn,
+  grounded in the NPC's latest reaction.
 
 JSON schema:
 {
@@ -53,7 +67,11 @@ JSON schema:
     "professionalism": 0,
     "language": 0,
     "culture": 0
-  }
+  },
+  "task_progress": 0,
+  "relationship_signal": "稳定",
+  "should_close": false,
+  "next_move": "string"
 }
 """.strip()
 
@@ -63,7 +81,7 @@ class DeepSeekProvider(AIProvider):
         self.client = AsyncOpenAI(
             api_key=settings.deepseek_api_key,
             base_url=settings.deepseek_base_url,
-            timeout=7.5,
+            timeout=30.0,
         )
         self.model = settings.deepseek_model
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync } from "node:fs";
 import path from "node:path";
+import { customSceneImages } from "./customSceneAssets.js";
 import { practiceScenarios } from "./practiceScenarios.js";
 import { scenes } from "./scenes.js";
 import {
@@ -15,12 +16,12 @@ describe("cinematic story assets", () => {
 
     scenes.forEach((scene, index) => {
       const cinematic = getCinematic(scene.id);
-      expect(cinematic.establishing.image).toMatch(/^\/assets\//);
-      expect(cinematic.reaction.image).toMatch(/^\/assets\//);
+      expect(cinematic.establishing.image).toMatch(/\/assets\/[^/]+\.png$/);
+      expect(cinematic.reaction.image).toMatch(/\/assets\/[^/]+\.png$/);
       expect(cinematic.reaction.frames).toBeGreaterThanOrEqual(3);
       expect(cinematic.inserts).toHaveLength(expectedInsertCounts[index]);
       cinematic.inserts.forEach((insert) => {
-        expect(insert.image).toMatch(/^\/assets\//);
+        expect(insert.image).toMatch(/\/assets\/[^/]+\.png$/);
       });
     });
   });
@@ -38,9 +39,12 @@ describe("cinematic story assets", () => {
       .filter((fileName) => fileName.endsWith(".png"))
       .sort();
     const referencedFiles = [
-      ...scenes.map((scene) => scene.background.split("/").at(-1)),
-      ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
-      ...cinematicImages.map((image) => image.split("/").at(-1)),
+      ...new Set([
+        ...scenes.map((scene) => scene.background.split("/").at(-1)),
+        ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
+        ...customSceneImages.map((image) => image.split("/").at(-1)),
+        ...cinematicImages.map((image) => image.split("/").at(-1)),
+      ]),
     ].sort();
 
     expect(referencedFiles).toEqual(filesOnDisk);

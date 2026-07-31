@@ -1,6 +1,12 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
-export async function requestAiTurn({ scene, option, status, fallback }) {
+export async function requestAiTurn({
+  scene,
+  option,
+  status,
+  fallback,
+  history = [],
+}) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 38000);
 
@@ -20,6 +26,18 @@ export async function requestAiTurn({ scene, option, status, fallback }) {
           objective: scene.objective ?? "",
           hidden_risk: scene.hiddenRisk ?? "",
           transfer_template: scene.transferTemplate ?? "",
+          scenario_summary: scene.scenarioSummary ?? "",
+          round_index: scene.roundIndex ?? 1,
+          round_limit: scene.roundLimit ?? 3,
+          history: history.slice(-8).map((entry, index) => ({
+            round_index: entry.roundIndex ?? index + 1,
+            npc_line_yue: entry.npcLineYue,
+            npc_line_zh: entry.npcLineZh,
+            player_text: entry.text,
+            npc_reaction_yue: entry.turn.npcLineYue,
+            npc_reaction_zh: entry.turn.npcLineZh,
+            coach_feedback: entry.turn.coachFeedback,
+          })),
         },
         player_action: {
           choice_id: option.id,
@@ -44,6 +62,14 @@ export async function requestAiTurn({ scene, option, status, fallback }) {
         npcLineZh: payload.npc_line_zh,
         coachFeedback: payload.coach_feedback,
         delta: payload.delta,
+        taskProgress: payload.task_progress ?? fallback.taskProgress ?? 0,
+        relationshipSignal:
+          payload.relationship_signal ?? fallback.relationshipSignal ?? "稳定",
+        shouldClose: payload.should_close ?? fallback.shouldClose ?? false,
+        nextMove:
+          payload.next_move ??
+          fallback.nextMove ??
+          "回应对方刚才的追问，并把下一步说具体。",
         localization: payload.localization
           ? {
               naturalness: payload.localization.naturalness,

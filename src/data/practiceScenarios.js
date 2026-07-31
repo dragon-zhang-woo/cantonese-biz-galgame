@@ -1,3 +1,5 @@
+import { expandedPracticeScenarios } from "./expandedPracticeScenarios.js";
+
 const asset = (name) => `/assets/${name}`;
 
 const neutralFallback = (speaker) => ({
@@ -9,7 +11,7 @@ const neutralFallback = (speaker) => ({
     "自由作答在模型不可用时保持中性，避免系统以静态答案武断评价用户。",
 });
 
-export const practiceScenarios = [
+const corePracticeScenarios = [
   {
     id: "practice-vincent-clarify-brief",
     stage: 1,
@@ -23,6 +25,10 @@ export const practiceScenarios = [
     skill: "任务澄清",
     difficulty: "入门",
     duration: "3 分钟",
+    relation: "上司",
+    pressure: "权力差距",
+    channel: "当面",
+    sourceIds: ["hk-labour-effective-workplace-communication"],
     objective: "在开工前确认目标、交付物、截止时间和首个检查点。",
     hiddenRisk:
       "害怕显得不懂而直接答应，最后做出一份方向正确但无法使用的交付物。",
@@ -77,6 +83,10 @@ export const practiceScenarios = [
     skill: "优先级协商",
     difficulty: "入门",
     duration: "4 分钟",
+    relation: "上司",
+    pressure: "时间紧迫",
+    channel: "当面",
+    sourceIds: ["hk-labour-communication-consultation"],
     objective: "公开资源冲突，提出优先级建议，并说明另一项工作的影响。",
     hiddenRisk:
       "同时答应两件急事，表面配合，实际让两个利益相关方都在最后一刻失望。",
@@ -131,6 +141,10 @@ export const practiceScenarios = [
     skill: "坏消息沟通",
     difficulty: "进阶",
     duration: "4 分钟",
+    relation: "上司",
+    pressure: "信任受损",
+    channel: "即时消息",
+    sourceIds: ["hk-labour-effective-workplace-communication"],
     objective: "在事实确认后尽早沟通延误，说明影响、承担和下一更新时间。",
     hiddenRisk:
       "为了等到“完整答案”才开口，使客户错过调整窗口，并把延误升级为信任问题。",
@@ -185,6 +199,10 @@ export const practiceScenarios = [
     skill: "非正式建立关系",
     difficulty: "入门",
     duration: "4 分钟",
+    relation: "跨部门伙伴",
+    pressure: "首次合作",
+    channel: "当面",
+    sourceIds: ["hk-labour-good-hr-guide"],
     objective: "自然打开话题，说明建立联系的理由，并让对方保留退出空间。",
     hiddenRisk:
       "把午饭变成单向索取信息或隐形面试，让对方感觉被利用。",
@@ -239,6 +257,10 @@ export const practiceScenarios = [
     skill: "柔性跟进",
     difficulty: "进阶",
     duration: "4 分钟",
+    relation: "跨部门伙伴",
+    pressure: "时间紧迫",
+    channel: "即时消息",
+    sourceIds: ["hk-labour-effective-workplace-communication"],
     objective: "不指责地重述共同目标，把模糊承诺变成负责人和具体时间。",
     hiddenRisk:
       "只重复“有空帮忙”，任务长期没有主人；或催得太硬，破坏跨团队关系。",
@@ -293,6 +315,10 @@ export const practiceScenarios = [
     skill: "范围控制",
     difficulty: "进阶",
     duration: "5 分钟",
+    relation: "客户",
+    pressure: "公开场合",
+    channel: "会议",
+    sourceIds: ["hk-labour-communication-consultation"],
     objective: "确认客户意图，说明原范围与影响，并提出公平的交换条件。",
     hiddenRisk:
       "为维持关系而免费承诺新增工作，最终用质量、进度或团队透支买单。",
@@ -347,6 +373,10 @@ export const practiceScenarios = [
     skill: "高层汇报",
     difficulty: "挑战",
     duration: "5 分钟",
+    relation: "客户",
+    pressure: "时间紧迫",
+    channel: "会议",
+    sourceIds: ["hk-labour-effective-workplace-communication"],
     objective: "先给结论，再给最强证据，最后提出一个明确决策请求。",
     hiddenRisk:
       "从项目背景开始讲，耗尽注意力，却没有让决策者知道今天需要决定什么。",
@@ -388,6 +418,11 @@ export const practiceScenarios = [
     ],
     nextSceneId: null,
   },
+];
+
+export const practiceScenarios = [
+  ...corePracticeScenarios,
+  ...expandedPracticeScenarios,
 ];
 
 export function getPracticeScenario(id) {
