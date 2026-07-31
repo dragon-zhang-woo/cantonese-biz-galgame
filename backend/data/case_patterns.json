@@ -37,7 +37,7 @@
     "relation": "客户",
     "task": "范围控制",
     "channel": "会议",
-    "keywords": ["加需求", "免费", "顺便", "额外", "改范围"],
+    "keywords": ["加需求", "免费", "顺便", "额外", "改范围", "扩大范围", "守住范围", "范围"],
     "skillIds": ["control-scope", "manage-client-expectation"],
     "fallbackScenarioId": "practice-mrs-ho-scope-creep",
     "npc": {"speaker": "何太", "role": "部门直属经理"},

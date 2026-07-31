@@ -17,16 +17,30 @@ class Delta(BaseModel):
     culture: int = Field(default=0, ge=-6, le=6)
 
 
+class ConversationEntry(BaseModel):
+    round_index: int = Field(ge=1, le=8)
+    npc_line_yue: str = Field(min_length=1, max_length=320)
+    npc_line_zh: str = Field(min_length=1, max_length=320)
+    player_text: str = Field(min_length=1, max_length=320)
+    npc_reaction_yue: str = Field(min_length=1, max_length=320)
+    npc_reaction_zh: str = Field(min_length=1, max_length=320)
+    coach_feedback: str = Field(min_length=1, max_length=520)
+
+
 class SceneContext(BaseModel):
     id: str = Field(min_length=1, max_length=80)
     speaker: str = Field(min_length=1, max_length=40)
     role: str = Field(min_length=1, max_length=60)
-    npc_line_yue: str = Field(min_length=1, max_length=280)
-    npc_line_zh: str = Field(min_length=1, max_length=280)
+    npc_line_yue: str = Field(min_length=1, max_length=320)
+    npc_line_zh: str = Field(min_length=1, max_length=320)
     coach_hint: str = Field(min_length=1, max_length=360)
     objective: str = Field(default="", max_length=360)
     hidden_risk: str = Field(default="", max_length=420)
     transfer_template: str = Field(default="", max_length=420)
+    scenario_summary: str = Field(default="", max_length=1000)
+    round_index: int = Field(default=1, ge=1, le=8)
+    round_limit: int = Field(default=3, ge=2, le=8)
+    history: list[ConversationEntry] = Field(default_factory=list, max_length=8)
 
 
 class PlayerAction(BaseModel):
@@ -51,10 +65,14 @@ class TurnRequest(BaseModel):
 class ModelTurn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    npc_line_yue: str = Field(min_length=1, max_length=280)
-    npc_line_zh: str = Field(min_length=1, max_length=280)
-    coach_feedback: str = Field(min_length=1, max_length=420)
+    npc_line_yue: str = Field(min_length=1, max_length=320)
+    npc_line_zh: str = Field(min_length=1, max_length=320)
+    coach_feedback: str = Field(min_length=1, max_length=520)
     delta: Delta
+    task_progress: int = Field(default=0, ge=0, le=100)
+    relationship_signal: Literal["改善", "稳定", "紧张"] = "稳定"
+    should_close: bool = False
+    next_move: str = Field(default="回应对方刚才的追问，并把下一步说具体。", min_length=1, max_length=240)
 
     @field_validator("npc_line_yue", "npc_line_zh", "coach_feedback")
     @classmethod
@@ -89,9 +107,38 @@ class TurnResponse(ModelTurn):
 
 
 class ScenarioComposeRequest(BaseModel):
-    description: str = Field(min_length=20, max_length=500)
+    description: str = Field(min_length=20, max_length=1000)
     pressure: Literal["温和", "直接", "高压"] = "直接"
-    rounds: int = Field(default=3, ge=2, le=3)
+    rounds: int = Field(default=5, ge=2, le=6)
+    relation: Literal[
+        "自动",
+        "上司",
+        "客户",
+        "跨部门伙伴",
+        "同事",
+        "带教经理",
+    ] = "自动"
+    channel: Literal[
+        "自动",
+        "当面",
+        "会议",
+        "电话",
+        "即时消息",
+        "邮件",
+        "视频会议",
+        "非正式会面",
+    ] = "自动"
+    focus: Literal[
+        "自动",
+        "任务澄清",
+        "优先级协商",
+        "风险汇报",
+        "范围控制",
+        "催进度",
+        "高层汇报",
+        "资料边界",
+        "表达异议",
+    ] = "自动"
 
     @field_validator("description")
     @classmethod
@@ -149,6 +196,6 @@ class ComposedScenario(BaseModel):
     redaction: RedactionSummary
     skill_cards: list[SkillCardRef] = Field(min_length=1, max_length=3)
     sources: list[KnowledgeSourceRef] = Field(min_length=1, max_length=6)
-    rounds: list[ScenarioRound] = Field(min_length=2, max_length=3)
+    rounds: list[ScenarioRound] = Field(min_length=2, max_length=6)
     disclaimer: str
     provider: Literal["rules+knowledge"]

@@ -27,6 +27,35 @@ import { canSubmitFreeResponse } from "../services/freeResponse.js";
 import { requestAiTurn } from "../services/gameApi.js";
 
 const pressureLevels = ["温和", "直接", "高压"];
+const relationOptions = ["自动", "上司", "客户", "跨部门伙伴", "同事", "带教经理"];
+const channelOptions = [
+  "自动",
+  "当面",
+  "会议",
+  "电话",
+  "即时消息",
+  "邮件",
+  "视频会议",
+  "非正式会面",
+];
+const focusOptions = [
+  "自动",
+  "任务澄清",
+  "优先级协商",
+  "风险汇报",
+  "范围控制",
+  "催进度",
+  "高层汇报",
+  "资料边界",
+  "表达异议",
+];
+
+function modelSources(provider = "fallback") {
+  return {
+    deepseek: provider.startsWith("deepseek"),
+    hkchat: provider.endsWith("hkchat"),
+  };
+}
 
 function clamp(value) {
   return Math.max(0, Math.min(100, value));
@@ -100,6 +129,12 @@ function Intake({
   onPressure,
   rounds,
   onRounds,
+  relation,
+  onRelation,
+  channel,
+  onChannel,
+  focus,
+  onFocus,
   onCompose,
   onHome,
   isLoading,
@@ -144,6 +179,39 @@ function Intake({
         </output>
       </label>
 
+      <div className="custom-profile-grid">
+        <label>
+          <span>由谁和你对练</span>
+          <select value={relation} onChange={(event) => onRelation(event.target.value)}>
+            {relationOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === "自动" ? "自动判断关系" : option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>沟通渠道</span>
+          <select value={channel} onChange={(event) => onChannel(event.target.value)}>
+            {channelOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === "自动" ? "自动判断渠道" : option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>这次重点</span>
+          <select value={focus} onChange={(event) => onFocus(event.target.value)}>
+            {focusOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === "自动" ? "自动组合任务" : option}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       <div className="custom-controls">
         <fieldset>
           <legend>对方压力</legend>
@@ -160,8 +228,8 @@ function Intake({
           ))}
         </fieldset>
         <fieldset>
-          <legend>练习轮数</legend>
-          {[2, 3].map((count) => (
+          <legend>建议轮数（两轮后可随时收口）</legend>
+          {[3, 5, 6].map((count) => (
             <button
               key={count}
               type="button"
@@ -183,7 +251,7 @@ function Intake({
         disabled={!valid || isLoading}
       >
         {isLoading ? <i className="button-spinner" /> : <Brain weight="duotone" />}
-        {isLoading ? "正在脱敏、分类并匹配技能…" : "生成匿名训练"}
+        {isLoading ? "正在脱敏、组合任务与角色…" : "生成动态匿名训练"}
         {!isLoading && <ArrowRight weight="bold" />}
       </button>
     </section>
@@ -210,7 +278,8 @@ function Prepared({ scenario, onStart, onBack, onHome }) {
           <i>{scenario.relation}</i>
           <i>{scenario.channel}</i>
           <i>{scenario.pressure}压力</i>
-          <i>{scenario.rounds.length} 轮</i>
+          <i>建议 {scenario.rounds.length} 轮 · 两轮后可收口</i>
+          <i>DeepSeek 角色推演 + 港话通语言反馈</i>
         </div>
       </div>
 
@@ -276,9 +345,13 @@ function Training({
   result,
   onSubmit,
   onNext,
+  onFinish,
+  canFinish,
   isLoading,
   onHome,
 }) {
+  const sources = modelSources(result?.provider);
+  const canContinue = index < scenario.rounds.length - 1;
   return (
     <section className="custom-training" aria-labelledby="custom-training-title">
       <div className="custom-training__image">
@@ -287,7 +360,7 @@ function Training({
       </div>
       <header>
         <div>
-          <span>ROUND {index + 1}/{scenario.rounds.length}</span>
+          <span>ROUND {index + 1} · 建议 {scenario.rounds.length} 轮</span>
           <h2 id="custom-training-title">{scene.chapter}</h2>
           <small>{scene.location}</small>
         </div>
@@ -308,6 +381,14 @@ function Training({
         </div>
         {result ? (
           <>
+            <div className="custom-model-status" aria-label={`本轮模型来源 ${result.provider}`}>
+              <span className={sources.deepseek ? "is-live" : "is-fallback"}>
+                DeepSeek · {sources.deepseek ? "真实角色反应" : "本地保底"}
+              </span>
+              <span className={sources.hkchat ? "is-live" : "is-fallback"}>
+                港话通 · {sources.hkchat ? "真实语言复盘" : "本地保底"}
+              </span>
+            </div>
             <div className="custom-coach-note">
               <Brain weight="duotone" />
               <span>
@@ -327,6 +408,19 @@ function Training({
                 </div>
               ))}
             </div>
+            <div className="custom-progress-signal">
+              <span>
+                任务闭环进度
+                <strong>{result.taskProgress}%</strong>
+              </span>
+              <i aria-hidden="true">
+                <b style={{ width: `${result.taskProgress}%` }} />
+              </i>
+              <em>
+                关系状态：{result.relationshipSignal}
+                {result.shouldClose ? " · 对方认为可以收口" : ""}
+              </em>
+            </div>
             <div className="custom-rewrite">
               <Sparkle weight="fill" />
               <span>
@@ -334,10 +428,17 @@ function Training({
                 <strong>{result.localization.hkRewrite}</strong>
               </span>
             </div>
-            <button className="primary-cta" type="button" onClick={onNext}>
-              {index === scenario.rounds.length - 1 ? "查看完整复盘" : "进入下一轮"}
-              <ArrowRight weight="bold" />
-            </button>
+            <div className="custom-round-actions">
+              <button className="primary-cta" type="button" onClick={onNext}>
+                {canContinue ? "承接真实反应，继续对话" : "完成并查看复盘"}
+                <ArrowRight weight="bold" />
+              </button>
+              {canFinish && canContinue && (
+                <button className="secondary-cta" type="button" onClick={onFinish}>
+                  现在结束并复盘
+                </button>
+              )}
+            </div>
           </>
         ) : (
           <form onSubmit={onSubmit} className="custom-answer-form">
@@ -346,21 +447,27 @@ function Training({
               id="custom-round-answer"
               value={value}
               onChange={(event) => onValue(event.target.value)}
-              maxLength="160"
-              rows="4"
+              maxLength="320"
+              rows="3"
               placeholder="用粤语、普通话或中英夹杂回应…"
             />
             <div>
               <span>{scene.coachHint}</span>
-              <output>{value.length}/160</output>
+              <output>{value.length}/320</output>
             </div>
+            {isLoading && (
+              <div className="custom-model-live" role="status">
+                <span><i /> DeepSeek 正在延续角色反应</span>
+                <span><i /> 港话通正在检查自然度与商务语气</span>
+              </div>
+            )}
             <button
               className="primary-cta"
               type="submit"
               disabled={!canSubmitFreeResponse(value) || isLoading}
             >
               <PaperPlaneTilt weight="fill" />
-              {isLoading ? "角色与教练正在回应…" : "提交本轮回应"}
+              {isLoading ? "双模型正在并行回应…" : "提交本轮回应"}
             </button>
           </form>
         )}
@@ -489,7 +596,10 @@ export function CustomScenarioExperience({ onHome }) {
   const [phase, setPhase] = useState("intake");
   const [description, setDescription] = useState("");
   const [pressure, setPressure] = useState("直接");
-  const [rounds, setRounds] = useState(3);
+  const [rounds, setRounds] = useState(5);
+  const [relation, setRelation] = useState("自动");
+  const [channel, setChannel] = useState("自动");
+  const [focus, setFocus] = useState("自动");
   const [scenario, setScenario] = useState(null);
   const [roundIndex, setRoundIndex] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -500,8 +610,15 @@ export function CustomScenarioExperience({ onHome }) {
   const [error, setError] = useState("");
 
   const scene = useMemo(
-    () => (scenario ? buildCustomRoundScene(scenario, roundIndex) : null),
-    [roundIndex, scenario],
+    () =>
+      scenario
+        ? buildCustomRoundScene(
+            scenario,
+            roundIndex,
+            responses.at(-1)?.turn ?? null,
+          )
+        : null,
+    [responses, roundIndex, scenario],
   );
   const rubric = useMemo(
     () =>
@@ -520,6 +637,9 @@ export function CustomScenarioExperience({ onHome }) {
         description: source,
         pressure: nextPressure,
         rounds,
+        relation,
+        channel,
+        focus,
       });
       setScenario(nextScenario);
       setDescription("");
@@ -555,6 +675,10 @@ export function CustomScenarioExperience({ onHome }) {
       npcLineZh: scene.freeformFallback.responseZh,
       coachFeedback: scene.freeformFallback.feedback,
       delta: option.delta,
+      taskProgress: Math.round(((roundIndex + 1) / scenario.rounds.length) * 100),
+      relationshipSignal: "稳定",
+      shouldClose: roundIndex >= scenario.rounds.length - 1,
+      nextMove: scene.coachHint,
       localization: localFeedback(option.text),
     };
     const response = await requestAiTurn({
@@ -562,16 +686,28 @@ export function CustomScenarioExperience({ onHome }) {
       option,
       status,
       fallback,
+      history: responses,
     });
     setRoundResult({ ...response.turn, provider: response.provider });
     setStatus((current) => applyDelta(current, response.turn.delta));
     setIsLoading(false);
   }
 
+  function currentResponse() {
+    return {
+      roundIndex: roundIndex + 1,
+      npcLineYue: scene.npcLineYue,
+      npcLineZh: scene.npcLineZh,
+      text: answer.trim(),
+      turn: roundResult,
+      roundId: scene.id,
+    };
+  }
+
   function advanceRound() {
     const nextResponses = [
       ...responses,
-      { text: answer.trim(), turn: roundResult, roundId: scene.id },
+      currentResponse(),
     ];
     setResponses(nextResponses);
     if (roundIndex >= scenario.rounds.length - 1) {
@@ -581,6 +717,11 @@ export function CustomScenarioExperience({ onHome }) {
     setRoundIndex((value) => value + 1);
     setAnswer("");
     setRoundResult(null);
+  }
+
+  function finishTraining() {
+    setResponses([...responses, currentResponse()]);
+    setPhase("result");
   }
 
   async function retryAtPressure(nextPressure) {
@@ -597,6 +738,12 @@ export function CustomScenarioExperience({ onHome }) {
           onPressure={setPressure}
           rounds={rounds}
           onRounds={setRounds}
+          relation={relation}
+          onRelation={setRelation}
+          channel={channel}
+          onChannel={setChannel}
+          focus={focus}
+          onFocus={setFocus}
           onCompose={() => compose()}
           onHome={onHome}
           isLoading={isLoading}
@@ -621,6 +768,8 @@ export function CustomScenarioExperience({ onHome }) {
           result={roundResult}
           onSubmit={submitRound}
           onNext={advanceRound}
+          onFinish={finishTraining}
+          canFinish={roundIndex >= 1}
           isLoading={isLoading}
           onHome={onHome}
         />

@@ -87,6 +87,47 @@ def test_contact_details_do_not_override_the_workplace_task() -> None:
     assert "test@example.com" not in scenario.redacted_description
 
 
+def test_combines_multiple_real_world_tasks_and_matches_the_relationship() -> None:
+    scenario = compose_scenario(
+        ScenarioComposeRequest(
+            description=(
+                "我要向跨部门同事解释项目延期，对方又临时要求扩大范围，"
+                "我希望练习怎样讲清事实、守住范围并约定下一步。"
+            ),
+            pressure="直接",
+            rounds=5,
+        )
+    )
+
+    assert "风险汇报" in scenario.task
+    assert "范围控制" in scenario.task
+    assert scenario.relation == "跨部门伙伴"
+    assert scenario.speaker == "阿朗"
+    assert scenario.background.endswith("custom-ah-long-open-office-v01.png")
+    assert len(scenario.rounds) == 5
+    assert len(scenario.skill_cards) >= 2
+
+
+def test_user_can_override_role_channel_focus_and_session_length() -> None:
+    scenario = compose_scenario(
+        ScenarioComposeRequest(
+            description="我需要练习在远程会议中回应客户不断加入的新要求，并确认交换条件。",
+            pressure="高压",
+            rounds=6,
+            relation="客户",
+            channel="视频会议",
+            focus="范围控制",
+        )
+    )
+
+    assert scenario.relation == "客户"
+    assert scenario.channel == "视频会议"
+    assert scenario.speaker == "陈嘉敏"
+    assert scenario.task.startswith("范围控制")
+    assert scenario.background.endswith("custom-chen-video-call-v01.png")
+    assert len(scenario.rounds) == 6
+
+
 def test_knowledge_base_meets_competition_minimums() -> None:
     sources = json.loads((DATA_DIR / "sources.json").read_text(encoding="utf-8"))
     skills = json.loads((DATA_DIR / "skill_cards.json").read_text(encoding="utf-8"))

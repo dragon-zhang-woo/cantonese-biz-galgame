@@ -400,7 +400,7 @@ function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
             <span>
               <small>我的现实情境</small>
               <strong>把正在面对的困难拿来练</strong>
-              <em>先脱敏 · 2–3 轮受约束模拟</em>
+              <em>先脱敏 · 3–6 轮双模型连续反馈</em>
             </span>
             <ArrowRight weight="bold" aria-hidden="true" />
           </button>

@@ -1,10 +1,11 @@
 import { getKnowledgeSources } from "../data/knowledgeSources.js";
+import { getCustomSceneImage } from "../data/customSceneAssets.js";
 import { getPracticeScenario } from "../data/practiceScenarios.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export const CUSTOM_SCENARIO_MIN_LENGTH = 20;
-export const CUSTOM_SCENARIO_MAX_LENGTH = 500;
+export const CUSTOM_SCENARIO_MAX_LENGTH = 1000;
 
 const localPatterns = [
   {
@@ -77,6 +78,34 @@ const localPatterns = [
   },
 ];
 
+const localPersonas = {
+  上司: {
+    speaker: "何太",
+    role: "部门直属经理",
+    background: getCustomSceneImage("mrs-ho-manager-office"),
+  },
+  客户: {
+    speaker: "陈嘉敏",
+    role: "区域业务总监",
+    background: getCustomSceneImage("chen-client-boardroom"),
+  },
+  跨部门伙伴: {
+    speaker: "阿朗",
+    role: "本地项目经理",
+    background: getCustomSceneImage("ah-long-open-office"),
+  },
+  同事: {
+    speaker: "阿朗",
+    role: "本地项目经理",
+    background: getCustomSceneImage("ah-long-open-office"),
+  },
+  带教经理: {
+    speaker: "Vincent 梁志诚",
+    role: "项目带教经理",
+    background: getCustomSceneImage("vincent-war-room"),
+  },
+};
+
 function replaceAndCount(value, expression, label, state) {
   return value.replace(expression, () => {
     state.count += 1;
@@ -143,15 +172,30 @@ function channelFromText(value) {
   return "当面";
 }
 
-function localCompose(description, pressure, rounds, redaction) {
-  const pattern =
+function localCompose(description, pressure, rounds, redaction, preferences) {
+  const inferred =
     localPatterns
       .map((item) => ({
         ...item,
         score: item.keywords.filter((keyword) => description.includes(keyword)).length,
       }))
       .sort((left, right) => right.score - left.score)[0] ?? localPatterns[0];
+  const pattern =
+    preferences.focus === "自动"
+      ? inferred
+      : localPatterns.find((item) => item.task === preferences.focus) ?? inferred;
   const fallback = getPracticeScenario(pattern.fallbackScenarioId);
+  const relation =
+    preferences.relation === "自动" ? pattern.relation : preferences.relation;
+  const channel =
+    preferences.channel === "自动"
+      ? channelFromText(description)
+      : preferences.channel;
+  const persona = localPersonas[relation] ?? {
+    speaker: fallback.speaker,
+    role: fallback.role,
+    background: fallback.background,
+  };
   const roundTemplates = [
     {
       id: "understand",
@@ -168,29 +212,50 @@ function localCompose(description, pressure, rounds, redaction) {
       coachHint: "给出判断、承担和一个可执行选择，不要只描述困难。",
     },
     {
+      id: "tradeoff",
+      purpose: "在限制中提出取舍",
+      npcLineYue: "时间同资源唔会一齐加，你建议点取舍？",
+      npcLineZh: "时间和资源不会同时增加，你建议怎样取舍？",
+      coachHint: "说清判断依据、影响和一个可选方案。",
+    },
+    {
+      id: "relationship",
+      purpose: "处理对方的关系顾虑",
+      npcLineYue: "你个方案对我有咩保障？",
+      npcLineZh: "你的方案对我有什么保障？",
+      coachHint: "承接对方的顾虑，再说明你愿意负责什么。",
+    },
+    {
+      id: "commit",
+      purpose: "形成负责人和检查点",
+      npcLineYue: "边个喺几时做咩？中间几时再确认？",
+      npcLineZh: "谁在什么时间做什么？中间什么时候再次确认？",
+      coachHint: "明确负责人、时间点、依赖和下一次更新。",
+    },
+    {
       id: "close",
-      purpose: "把对话收束为下一步",
-      npcLineYue: "好，咁边个喺几时做咩？你点确保大家理解一致？",
-      npcLineZh: "好，那么谁在什么时间做什么？你怎样确保大家理解一致？",
-      coachHint: "明确负责人、时间点和确认方式。",
+      purpose: "把共识写成可执行收口",
+      npcLineYue: "最后用两句讲清楚共识同下一步。",
+      npcLineZh: "最后用两句话说清共识和下一步。",
+      coachHint: "确认共识、未决项和确认方式。",
     },
   ];
   const sourceIds = pattern.skillCards.flatMap((skill) => skill.sourceIds);
   return {
     id: `custom-offline-${pattern.id}`,
     title: `现实情境 · ${pattern.task}`,
-    relation: pattern.relation,
+    relation,
     task: pattern.task,
-    channel: channelFromText(description),
+    channel,
     difficulty: pressure === "高压" ? "高压" : pressure === "直接" ? "进阶" : "入门",
     pressure,
-    speaker: fallback.speaker,
-    role: fallback.role,
+    speaker: persona.speaker,
+    role: persona.role,
     objective: pattern.skillCards[0].objective,
     hiddenRisk: fallback.hiddenRisk,
     transferTemplate: fallback.transferTemplate,
     fallbackScenarioId: fallback.id,
-    background: fallback.background,
+    background: persona.background,
     redactedDescription: description,
     redaction,
     skillCards: pattern.skillCards,
@@ -257,7 +322,14 @@ function mapScenario(payload, clientRedaction) {
   };
 }
 
-export async function composeCustomScenario({ description, pressure, rounds }) {
+export async function composeCustomScenario({
+  description,
+  pressure,
+  rounds,
+  relation = "自动",
+  channel = "自动",
+  focus = "自动",
+}) {
   const sanitized = sanitizeCustomDescription(description);
   if (sanitized.text.length < CUSTOM_SCENARIO_MIN_LENGTH) {
     throw new Error(`请至少输入 ${CUSTOM_SCENARIO_MIN_LENGTH} 个字。`);
@@ -274,6 +346,9 @@ export async function composeCustomScenario({ description, pressure, rounds }) {
         description: sanitized.text,
         pressure,
         rounds,
+        relation,
+        channel,
+        focus,
       }),
     });
     if (!response.ok) throw new Error(`compose failed: ${response.status}`);
@@ -282,20 +357,26 @@ export async function composeCustomScenario({ description, pressure, rounds }) {
       categories: sanitized.categories,
     });
   } catch {
-    return localCompose(sanitized.text, pressure, rounds, {
-      count: sanitized.count,
-      categories: sanitized.categories,
-    });
+    return localCompose(
+      sanitized.text,
+      pressure,
+      rounds,
+      {
+        count: sanitized.count,
+        categories: sanitized.categories,
+      },
+      { relation, channel, focus },
+    );
   } finally {
     window.clearTimeout(timeout);
   }
 }
 
-export function buildCustomRoundScene(scenario, index) {
+export function buildCustomRoundScene(scenario, index, priorTurn = null) {
   const round = scenario.rounds[index];
   return {
     id: `${scenario.id}-round-${index + 1}`,
-    chapter: `${scenario.title} · 第 ${index + 1} 轮`,
+    chapter: scenario.title,
     location: `${scenario.channel} · ${scenario.pressure}压力`,
     speaker: scenario.speaker,
     role: scenario.role,
@@ -307,9 +388,12 @@ export function buildCustomRoundScene(scenario, index) {
     objective: scenario.objective,
     hiddenRisk: scenario.hiddenRisk,
     transferTemplate: scenario.transferTemplate,
-    npcLineYue: round.npcLineYue,
-    npcLineZh: round.npcLineZh,
-    coachHint: round.coachHint,
+    scenarioSummary: scenario.redactedDescription,
+    roundIndex: index + 1,
+    roundLimit: scenario.rounds.length,
+    npcLineYue: priorTurn?.npcLineYue ?? round.npcLineYue,
+    npcLineZh: priorTurn?.npcLineZh ?? round.npcLineZh,
+    coachHint: priorTurn?.nextMove ?? round.coachHint,
     glossary: {
       term: "受约束模拟",
       explanation:

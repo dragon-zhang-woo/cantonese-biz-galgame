@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync } from "node:fs";
 import path from "node:path";
+import { customSceneImages } from "./customSceneAssets.js";
 import { practiceScenarios } from "./practiceScenarios.js";
 import { scenes } from "./scenes.js";
 import {
@@ -41,6 +42,7 @@ describe("cinematic story assets", () => {
       ...new Set([
         ...scenes.map((scene) => scene.background.split("/").at(-1)),
         ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
+        ...customSceneImages.map((image) => image.split("/").at(-1)),
         ...cinematicImages.map((image) => image.split("/").at(-1)),
       ]),
     ].sort();

@@ -134,13 +134,84 @@ def _classification_text(description: str) -> str:
     )
 
 
-def _select_pattern(description: str) -> dict:
+FOCUS_PATTERN_IDS = {
+    "任务澄清": "ambiguous-brief",
+    "优先级协商": "priority-conflict",
+    "风险汇报": "delivery-risk",
+    "范围控制": "scope-request",
+    "催进度": "soft-follow-up",
+    "高层汇报": "executive-brief",
+    "资料边界": "personal-data-request",
+    "表达异议": "workplace-conflict",
+}
+
+PERSONAS = {
+    "上司": {
+        "speaker": "何太",
+        "role": "部门直属经理",
+        "background": "/assets/custom-mrs-ho-manager-office-v01.png",
+    },
+    "客户": {
+        "speaker": "陈嘉敏",
+        "role": "区域业务总监",
+        "background": "/assets/custom-chen-client-boardroom-v01.png",
+    },
+    "跨部门伙伴": {
+        "speaker": "阿朗",
+        "role": "本地项目经理",
+        "background": "/assets/custom-ah-long-open-office-v01.png",
+    },
+    "同事": {
+        "speaker": "阿朗",
+        "role": "本地项目经理",
+        "background": "/assets/custom-ah-long-open-office-v01.png",
+    },
+    "带教经理": {
+        "speaker": "Vincent 梁志诚",
+        "role": "项目带教经理",
+        "background": "/assets/custom-vincent-war-room-v01.png",
+    },
+}
+
+
+def _select_patterns(description: str, focus: str) -> list[dict]:
+    scored = [
+        (item, _pattern_score(item, description))
+        for item in CASE_PATTERNS
+    ]
     ranked = sorted(
-        CASE_PATTERNS,
-        key=lambda item: (_pattern_score(item, description), -CASE_PATTERNS.index(item)),
+        scored,
+        key=lambda pair: (pair[1], -CASE_PATTERNS.index(pair[0])),
         reverse=True,
     )
-    return ranked[0]
+
+    selected: list[dict] = []
+    focused_id = FOCUS_PATTERN_IDS.get(focus)
+    if focused_id:
+        selected.append(next(item for item in CASE_PATTERNS if item["id"] == focused_id))
+
+    for item, score in ranked:
+        if score <= 0 or item in selected:
+            continue
+        if (
+            item["id"] == "soft-follow-up"
+            and "催" in description
+            and not any(
+                keyword in description
+                for keyword in ("跟进", "没回复", "未回复", "得闲", "有空")
+            )
+            and any(pattern["id"] == "delivery-risk" for pattern, value in ranked if value > 0)
+        ):
+            continue
+        selected.append(item)
+        if len(selected) == 2:
+            break
+
+    if not selected:
+        selected.append(
+            next(item for item in CASE_PATTERNS if item["id"] == "workplace-conflict")
+        )
+    return selected[:2]
 
 
 def _relationship_from_text(description: str, fallback: str) -> str:
@@ -214,32 +285,59 @@ def _transfer_template(pattern: dict) -> str:
     return templates.get(pattern["id"], "我理解目标是＿＿；我会负责＿＿，并在＿＿前用＿＿方式确认下一步。")
 
 
-def _rounds(pattern: dict, pressure: str, count: int) -> list[ScenarioRound]:
+def _rounds(
+    patterns: list[dict],
+    description: str,
+    pressure: str,
+    count: int,
+) -> list[ScenarioRound]:
     pressure_suffix = SCENARIO_TEMPLATES["pressureLevels"][pressure]["promptSuffix"]
+    summary = re.split(r"[，。；;]", description, maxsplit=1)[0][:48].rstrip()
     prompts = [
         (
-            "你先讲清楚，你认为而家最重要要解决咩？",
-            "你先说清楚，你认为现在最重要要解决什么？",
+            f"你话而家要处理「{summary}」。先讲清楚，你想我最后答应或者确认咩？",
+            f"你说现在要处理“{summary}”。先讲清楚，你希望我最后答应或确认什么？",
         ),
         (
-            "如果时间同资源都唔变，你建议点取舍？唔好只话有困难。",
-            "如果时间和资源都不变，你建议怎样取舍？不要只说有困难。",
+            "你个判断凭咩？如果我唔接受，你仲有咩具体依据或者选择？",
+            "你的判断依据是什么？如果我不接受，你还有什么具体依据或选择？",
         ),
         (
-            "好，咁边个喺几时做咩？你点确保大家理解一致？",
-            "好，那么谁在什么时间做什么？你怎样确保大家理解一致？",
+            "时间同资源唔会一齐加，你建议点取舍？讲埋边一项会受影响。",
+            "时间和资源不会同时增加，你建议怎样取舍？也说明哪一项会受影响。",
+        ),
+        (
+            "你个方案对件事有帮助，但对我有咩保障？点避免我承担晒风险？",
+            "你的方案对事情有帮助，但对我有什么保障？怎样避免由我承担全部风险？",
+        ),
+        (
+            "而家讲到执行：边个喺几时做咩？中间边个点要再确认？",
+            "现在谈执行：谁在什么时间做什么？中间哪个节点需要再次确认？",
+        ),
+        (
+            "最后一次：你用两句说清楚共识，同埋下一次更新系几时。",
+            "最后一次：请用两句话说清共识，以及下一次更新时间。",
         ),
     ]
-    rounds = []
-    for index, template in enumerate(SCENARIO_TEMPLATES["rounds"][:count]):
+    phases = [
+        ("define", "定义希望达成的真实结果", "先说希望对方确认什么，再补一项最关键事实。"),
+        ("probe", "回应质疑并补足依据", "回应对方刚才的具体疑问，不要重讲开场白。"),
+        ("tradeoff", "在限制中提出取舍", "给出一个判断、一个影响和一个可选方案。"),
+        ("relationship", "处理对方的关系顾虑", "承接对方担心承担的风险，再说明你愿意负责什么。"),
+        ("commit", "形成负责人和检查点", "明确负责人、时间点、依赖和下一次更新。"),
+        ("close", "把共识写成可执行收口", "用最少的话确认共识、未决项和确认方式。"),
+    ]
+    rounds: list[ScenarioRound] = []
+    pattern_key = "-".join(pattern["id"] for pattern in patterns)
+    for index, (round_id, purpose, hint) in enumerate(phases[:count]):
         yue, zh = prompts[index]
         rounds.append(
             ScenarioRound(
-                id=f"{pattern['id']}-{template['id']}",
-                purpose=template["purpose"],
+                id=f"{pattern_key}-{round_id}",
+                purpose=purpose,
                 npc_line_yue=f"{yue} {pressure_suffix}",
                 npc_line_zh=f"{zh} {pressure_suffix}",
-                coach_hint=template["coachHint"],
+                coach_hint=hint,
             )
         )
     return rounds
@@ -248,8 +346,16 @@ def _rounds(pattern: dict, pressure: str, count: int) -> list[ScenarioRound]:
 def compose_scenario(request: ScenarioComposeRequest) -> ComposedScenario:
     redacted_description, redaction = redact_description(request.description)
     classification_text = _classification_text(redacted_description)
-    pattern = _select_pattern(classification_text)
-    skills = [SKILL_BY_ID[skill_id] for skill_id in pattern["skillIds"]]
+    patterns = _select_patterns(classification_text, request.focus)
+    primary_pattern = patterns[0]
+    skill_ids = list(
+        dict.fromkeys(
+            skill_id
+            for pattern in patterns
+            for skill_id in pattern["skillIds"]
+        )
+    )[:3]
+    skills = [SKILL_BY_ID[skill_id] for skill_id in skill_ids]
     source_ids = list(
         dict.fromkeys(
             source_id
@@ -258,30 +364,67 @@ def compose_scenario(request: ScenarioComposeRequest) -> ComposedScenario:
         )
     )
     sources = [SOURCE_BY_ID[source_id] for source_id in source_ids]
-    channel = _channel_from_text(classification_text, pattern["channel"])
-    relationship = _relationship_from_text(classification_text, pattern["relation"])
+    channel = (
+        request.channel
+        if request.channel != "自动"
+        else _channel_from_text(classification_text, primary_pattern["channel"])
+    )
+    relationship = (
+        request.relation
+        if request.relation != "自动"
+        else _relationship_from_text(classification_text, primary_pattern["relation"])
+    )
     difficulty = SCENARIO_TEMPLATES["pressureLevels"][request.pressure]["difficulty"]
+    persona = PERSONAS.get(
+        relationship,
+        {
+            "speaker": primary_pattern["npc"]["speaker"],
+            "role": primary_pattern["npc"]["role"],
+            "background": primary_pattern["background"],
+        },
+    )
+    if channel == "视频会议" and relationship == "客户":
+        persona = {
+            **persona,
+            "background": "/assets/custom-chen-video-call-v01.png",
+        }
+    elif channel == "非正式会面" and relationship == "上司":
+        persona = {
+            **persona,
+            "background": "/assets/custom-mrs-ho-restaurant-v01.png",
+        }
+    tasks = [pattern["task"] for pattern in patterns]
+    task = "与".join(tasks)
+    objective = "；同时".join(skill["objective"] for skill in skills[:2])
+    transfer_template = "；再用：".join(
+        _transfer_template(pattern) for pattern in patterns
+    )
 
     return ComposedScenario(
         id=f"custom-{uuid4().hex[:12]}",
-        title=f"现实情境 · {pattern['task']}",
+        title=f"现实情境 · {task}",
         relation=relationship,
-        task=pattern["task"],
+        task=task,
         channel=channel,
         difficulty=difficulty,
         pressure=request.pressure,
-        speaker=pattern["npc"]["speaker"],
-        role=pattern["npc"]["role"],
-        objective=skills[0]["objective"],
+        speaker=persona["speaker"],
+        role=persona["role"],
+        objective=objective,
         hidden_risk=_relationship_risk(skills),
-        transfer_template=_transfer_template(pattern),
-        fallback_scenario_id=pattern["fallbackScenarioId"],
-        background=pattern["background"],
+        transfer_template=transfer_template,
+        fallback_scenario_id=primary_pattern["fallbackScenarioId"],
+        background=persona["background"],
         redacted_description=redacted_description,
         redaction=redaction,
         skill_cards=[_skill_ref(skill) for skill in skills],
         sources=[_source_ref(source) for source in sources],
-        rounds=_rounds(pattern, request.pressure, request.rounds),
+        rounds=_rounds(
+            patterns,
+            classification_text,
+            request.pressure,
+            request.rounds,
+        ),
         disclaimer=(
             "这是匿名沟通训练，不替代法律、人事、医疗或心理专业意见。"
             "高风险情况请使用所属机构的正式流程或官方求助渠道。"
