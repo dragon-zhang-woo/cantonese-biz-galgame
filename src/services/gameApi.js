@@ -42,6 +42,8 @@ export async function requestAiTurn({
         player_action: {
           choice_id: option.id,
           text: option.text,
+          input_kind:
+            option.inputKind === "free" || option.isCustom ? "free" : "authored",
         },
         state: status,
         fallback: {

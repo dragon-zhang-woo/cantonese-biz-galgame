@@ -44,6 +44,11 @@ When implementing from a selected generated mock, treat that image as the source
 - Browser and backend custom-scenario inference must use the shared JSON rules and conformance fixtures; explicit learner choices outrank inferred relation, channel and focus.
 - Keep composition provenance separate from per-turn model provenance. Low-confidence inferred fields must remain visibly correctable before training starts.
 - The judge showcase is a read-only Act 1/4/5 presentation surface: it must never call a model, mutate campaign state, write session storage or alter the canonical story graph.
+- All authored-training free-input surfaces share `UtteranceInput`: campaign/practice turns, custom-scenario intake and custom rounds. The practice-library search box stays text-only.
+- Speech audio is retained only in the dedicated browser IndexedDB, capped at the newest 20 assets and 30 days. Never put audio, transcripts, original filenames or model results in campaign/training storage, `localStorage` or `TurnCache`.
+- HKChat Speech produces editable transcripts; only explicit learner submission sends text through the existing DeepSeek NPC + HKChat text-review turn. Keep all three provenance labels separate.
+- Custom-scenario audio must disclose that it reaches HKChat Speech before browser text redaction. Keyboard input and deterministic offline training remain available whenever microphone, HTTPS, permissions or the speech provider are unavailable.
+- Do not infer the HKChat Speech protocol from a public base host. Enable upload or live capabilities only with explicit organiser-supplied endpoint and authentication contracts; never emulate live transcription by polling complete-file uploads.
 
 ## Durable Repository Workflow
 

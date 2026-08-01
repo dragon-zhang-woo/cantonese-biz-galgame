@@ -25,6 +25,7 @@ import {
 } from "../services/customScenario.js";
 import { canSubmitFreeResponse } from "../services/freeResponse.js";
 import { requestAiTurn } from "../services/gameApi.js";
+import { UtteranceInput } from "./UtteranceInput.jsx";
 
 const pressureLevels = ["温和", "直接", "高压"];
 const relationOptions = ["自动", "上司", "客户", "跨部门伙伴", "同事", "带教经理"];
@@ -140,7 +141,9 @@ function Intake({
   isLoading,
   error,
 }) {
-  const valid = description.trim().length >= CUSTOM_SCENARIO_MIN_LENGTH;
+  const valid =
+    description.trim().length >= CUSTOM_SCENARIO_MIN_LENGTH &&
+    description.length <= CUSTOM_SCENARIO_MAX_LENGTH;
   return (
     <section className="custom-intake" aria-labelledby="custom-intake-title">
       <header>
@@ -163,21 +166,21 @@ function Intake({
         </div>
       </div>
 
-      <label className="custom-description" htmlFor="custom-scenario-description">
-        <span>你正在面对什么困难？</span>
-        <textarea
+      <div className="custom-description">
+        <UtteranceInput
           id="custom-scenario-description"
+          label="你正在面对什么困难？"
           value={description}
-          onChange={(event) => onDescription(event.target.value)}
-          minLength={CUSTOM_SCENARIO_MIN_LENGTH}
+          onChange={onDescription}
           maxLength={CUSTOM_SCENARIO_MAX_LENGTH}
           rows="6"
           placeholder="例如：经理要求我同时完成两件今天到期的任务，我不知道怎样提出优先级。"
+          scope="scenario-intake"
         />
         <output>
           {description.length}/{CUSTOM_SCENARIO_MAX_LENGTH} · 至少 {CUSTOM_SCENARIO_MIN_LENGTH} 字
         </output>
-      </label>
+      </div>
 
       <div className="custom-profile-grid">
         <label>
@@ -524,14 +527,15 @@ function Training({
           </>
         ) : (
           <form onSubmit={onSubmit} className="custom-answer-form">
-            <label htmlFor="custom-round-answer">你的回应</label>
-            <textarea
+            <UtteranceInput
               id="custom-round-answer"
+              label="你的回应"
               value={value}
-              onChange={(event) => onValue(event.target.value)}
-              maxLength="320"
+              onChange={onValue}
+              maxLength={320}
               rows="3"
               placeholder="用粤语、普通话或中英夹杂回应…"
+              scope="custom-turn"
             />
             <div>
               <span>{scene.coachHint}</span>
@@ -546,7 +550,7 @@ function Training({
             <button
               className="primary-cta"
               type="submit"
-              disabled={!canSubmitFreeResponse(value) || isLoading}
+              disabled={!canSubmitFreeResponse(value) || value.length > 320 || isLoading}
             >
               <PaperPlaneTilt weight="fill" />
               {isLoading ? "双模型正在并行回应…" : "提交本轮回应"}
@@ -773,6 +777,7 @@ export function CustomScenarioExperience({ onHome }) {
     const option = {
       id: `custom-round-${roundIndex + 1}`,
       text: answer.trim(),
+      inputKind: "free",
       delta: { trust: 0, professionalism: 0, language: 0, culture: 0 },
     };
     const fallback = {
