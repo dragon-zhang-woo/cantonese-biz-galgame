@@ -42,8 +42,22 @@
 
 ## 自动化回归
 
-- 前端：40 项 Vitest 测试通过。
-- 后端：隔离 `.venv` 中 35 项 Pytest 测试通过。
+- 前端：48 项 Vitest 测试通过。
+- 后端：隔离 `.venv` 中 51 项 Pytest 测试通过。
 - ESLint 与 Vite production build 通过。
 - 当前 Windows 验收机没有安装 Docker CLI，`docker compose build` 未运行；
-  容器构建仍需在 CI 或具备 Docker 的环境补验。
+  PR CI 已加入 Web/API 两个独立 Docker 镜像构建，等待远端 runner 验证。
+
+## 语音审计补强
+
+补强日期：2026-08-02
+
+- 真实生成并解码 WAV、MP3、MP4/M4A/AAC、原始 AAC、Ogg/Opus 和
+  WebM/Opus，全部归一化为 16 kHz 单声道 WAV。
+- 流式测试覆盖重复/倒退 sequence、final 合并、PCM 字节时长上限、取消、
+  Origin、每客户端并发和启动频率。
+- 文件 Adapter 覆盖 Basic/Bearer、认证失败、普通 4xx、5xx、429 和超时的
+  稳定错误映射。
+- 前端组件测试覆盖麦克风拒绝、开始/停止、录音时锁定文本、ASR 不可用、
+  IndexedDB 配额失败后的当前内存 Blob 下载，以及 interim/final 去重、
+  追加/替换、超长不截断和 iOS M4A MIME 推断。

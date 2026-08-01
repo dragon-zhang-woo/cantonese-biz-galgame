@@ -14,6 +14,7 @@ from typing import Any, Protocol
 import av
 import httpx
 from websockets.asyncio.client import connect
+from websockets.exceptions import InvalidStatus
 
 from app.core.config import Settings
 from app.models.schemas import (
@@ -76,13 +77,19 @@ class SpeechModuleError(Exception):
 class HKChatSpeechAdapter:
     """HTTP adapter enabled only after a verified upstream URL is configured."""
 
-    def __init__(self, settings: Settings):
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        http_transport: httpx.AsyncBaseTransport | None = None,
+    ):
         self.settings = settings
         self.url = settings.hkchat_speech_http_url
         self.api_key = settings.hkchat_speech_api_key
         self.auth_mode = settings.hkchat_speech_auth_mode
         self.username = settings.hkchat_speech_username
         self.password = settings.hkchat_speech_password
+        self.http_transport = http_transport
 
     def _auth(self) -> tuple[dict[str, str], httpx.BasicAuth | None]:
         if self.auth_mode == "basic":
@@ -104,7 +111,10 @@ class HKChatSpeechAdapter:
     ) -> SpeechAdapterResult:
         headers, auth = self._auth()
         try:
-            async with httpx.AsyncClient(timeout=35.0) as client:
+            async with httpx.AsyncClient(
+                timeout=35.0,
+                transport=self.http_transport,
+            ) as client:
                 response = await client.post(
                     self.url,
                     headers=headers,
@@ -166,15 +176,19 @@ class HKChatSpeechAdapter:
                 max_size=1_048_576,
             ) as upstream:
                 async def send_events() -> None:
-                    async for event in events:
-                        if isinstance(event, bytes):
-                            await upstream.send(event)
-                        else:
-                            await upstream.send(json.dumps(event, ensure_ascii=False))
+                    try:
+                        async for event in events:
+                            if isinstance(event, bytes):
+                                await upstream.send(event)
+                            else:
+                                await upstream.send(json.dumps(event, ensure_ascii=False))
+                    except Exception:
+                        await upstream.close(code=1011, reason="client_stream_error")
+                        raise
 
                 sender = asyncio.create_task(send_events())
                 try:
-                    async with asyncio.timeout(35):
+                    async with asyncio.timeout(330):
                         async for message in upstream:
                             if not isinstance(message, str):
                                 continue
@@ -183,8 +197,12 @@ class HKChatSpeechAdapter:
                             if event.get("type") in {"complete", "error"}:
                                 return
                 finally:
-                    sender.cancel()
-                    await asyncio.gather(sender, return_exceptions=True)
+                    if not sender.done():
+                        sender.cancel()
+                    sender_result = await asyncio.gather(sender, return_exceptions=True)
+                    sender_error = sender_result[0]
+                    if isinstance(sender_error, Exception):
+                        raise sender_error
         except TimeoutError as exc:
             raise SpeechModuleError(
                 "upstream_timeout",
@@ -194,6 +212,28 @@ class HKChatSpeechAdapter:
             ) from exc
         except SpeechModuleError:
             raise
+        except InvalidStatus as exc:
+            status_code = getattr(exc.response, "status_code", None)
+            if status_code in {401, 403}:
+                raise SpeechModuleError(
+                    "upstream_auth",
+                    "港话通实时语音鉴权失败。",
+                    502,
+                    False,
+                ) from exc
+            if status_code == 429:
+                raise SpeechModuleError(
+                    "upstream_rate_limited",
+                    "港话通实时语音服务繁忙，请稍后重试。",
+                    503,
+                    True,
+                ) from exc
+            raise SpeechModuleError(
+                "upstream_unavailable",
+                "港话通实时语音暂时不可用，录音仍保留在本机。",
+                502,
+                True,
+            ) from exc
         except Exception as exc:
             raise SpeechModuleError(
                 "upstream_unavailable",
@@ -221,19 +261,18 @@ def _matches_file_signature(content_type: str, data: bytes) -> bool:
 
 def _normalise_audio(data: bytes) -> tuple[bytes, int]:
     try:
-        source = av.open(io.BytesIO(data))
-        stream = next(iter(source.streams.audio))
-        resampler = av.AudioResampler(format="s16", layout="mono", rate=16_000)
-        pcm = bytearray()
-        sample_count = 0
-        for frame in source.decode(stream):
-            for converted in resampler.resample(frame):
+        with av.open(io.BytesIO(data)) as source:
+            stream = next(iter(source.streams.audio))
+            resampler = av.AudioResampler(format="s16", layout="mono", rate=16_000)
+            pcm = bytearray()
+            sample_count = 0
+            for frame in source.decode(stream):
+                for converted in resampler.resample(frame):
+                    sample_count += converted.samples
+                    pcm.extend(bytes(converted.planes[0])[: converted.samples * 2])
+            for converted in resampler.resample(None):
                 sample_count += converted.samples
                 pcm.extend(bytes(converted.planes[0])[: converted.samples * 2])
-        for converted in resampler.resample(None):
-            sample_count += converted.samples
-            pcm.extend(bytes(converted.planes[0])[: converted.samples * 2])
-        source.close()
     except (av.error.FFmpegError, StopIteration, ValueError) as exc:
         raise SpeechModuleError(
             "unsupported_media",
@@ -317,7 +356,7 @@ class SpeechTranscriptionModule:
         scope: str,
         language_hint: str,
     ) -> SpeechTranscriptionResponse:
-        if self.adapter is None:
+        if self.adapter is None or not self.settings.speech_upload_configured:
             raise SpeechModuleError("not_configured", "港话通语音尚未配置。", 503, True)
         if scope not in SCOPE_LIMITS_MS:
             raise SpeechModuleError("invalid_scope", "未知的训练语音范围。", 422, False)
@@ -354,8 +393,75 @@ class SpeechTranscriptionModule:
                 503,
                 True,
             )
-        async for event in stream(events):
+        async def validated_events() -> AsyncIterator[SpeechStreamInput]:
+            scope: str | None = None
+            received_bytes = 0
+            async for client_event in events:
+                if isinstance(client_event, dict) and client_event.get("type") == "start":
+                    if scope is not None:
+                        raise SpeechModuleError(
+                            "invalid_stream_event",
+                            "实时语音只能启动一次。",
+                            422,
+                            False,
+                        )
+                    scope = str(client_event.get("scope") or "")
+                    if scope not in SCOPE_LIMITS_MS:
+                        raise SpeechModuleError(
+                            "invalid_scope",
+                            "未知的训练语音范围。",
+                            422,
+                            False,
+                        )
+                elif isinstance(client_event, bytes):
+                    if scope is None or len(client_event) % 2:
+                        raise SpeechModuleError(
+                            "invalid_stream_event",
+                            "实时语音 PCM 数据无效。",
+                            422,
+                            False,
+                        )
+                    received_bytes += len(client_event)
+                    max_bytes = SCOPE_LIMITS_MS[scope] * 16_000 * 2 // 1000
+                    if received_bytes > max_bytes:
+                        raise SpeechModuleError(
+                            "audio_too_long",
+                            "录音时长超过当前输入限制。",
+                            413,
+                            True,
+                        )
+                yield client_event
+
+        last_sequence = 0
+        final_segments: list[str] = []
+        async for event in stream(validated_events()):
             event_type = event.get("type")
             if event_type not in {"ready", "interim", "final", "complete", "error"}:
                 continue
-            yield event
+            if event_type == "ready":
+                yield {"type": "ready"}
+                continue
+            if event_type in {"interim", "final"}:
+                sequence = event.get("sequence")
+                text = str(event.get("text") or "").strip()
+                if not isinstance(sequence, int) or sequence <= last_sequence or not text:
+                    continue
+                last_sequence = sequence
+                if event_type == "final":
+                    final_segments.append(text)
+                yield {"type": event_type, "sequence": sequence, "text": text}
+                continue
+            if event_type == "complete":
+                transcript = str(event.get("transcript") or "").strip()
+                yield {
+                    "type": "complete",
+                    "transcript": transcript or " ".join(final_segments),
+                    "source": "hkchat-speech",
+                }
+                continue
+            yield {
+                "type": "error",
+                "code": str(event.get("code") or "upstream_unavailable"),
+                "message": str(event.get("message") or "港话通实时语音暂时不可用。"),
+                "recoverable": bool(event.get("recoverable", True)),
+            }

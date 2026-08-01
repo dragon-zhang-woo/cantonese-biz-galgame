@@ -22,6 +22,14 @@ import {
   getSpeechCapabilities,
   transcribeAudio,
 } from "../services/speechApi.js";
+import {
+  createTranscriptAccumulator,
+  mergeTranscriptValue,
+  microphoneErrorMessage,
+  recordingCompletionAction,
+  resolveAudioUploadMimeType,
+  transcriptExceedsLimit,
+} from "../services/speechTranscript.js";
 
 let voiceConsentGranted = false;
 
@@ -114,6 +122,7 @@ export function UtteranceInput({
   const [showConsent, setShowConsent] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [assets, setAssets] = useState([]);
+  const [volatileAsset, setVolatileAsset] = useState(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const pendingAction = useRef(null);
@@ -127,7 +136,7 @@ export function UtteranceInput({
   const recordingTimer = useRef(null);
   const recordingStartedAt = useRef(0);
   const finalTranscript = useRef("");
-  const finalSequence = useRef(0);
+  const transcriptAccumulator = useRef(createTranscriptAccumulator());
   const liveComplete = useRef(false);
   const valueRef = useRef(value);
 
@@ -210,6 +219,7 @@ export function UtteranceInput({
       await saveAudioAsset(asset);
       await refreshLibrary();
     } catch {
+      setVolatileAsset(asset);
       setWarning("本机录音空间不足；本次音频仍可转写，请立即下载保存。");
     }
     return asset;
@@ -238,12 +248,14 @@ export function UtteranceInput({
       setError("录音文件不能超过 25MB。");
       return;
     }
-    if (!capabilities.acceptedMimeTypes.includes(file.type)) {
+    const mimeType = resolveAudioUploadMimeType(file, capabilities.acceptedMimeTypes);
+    if (!mimeType) {
       setError("请上传 WAV、MP3、M4A、AAC、Ogg 或 WebM 录音。");
       return;
     }
     setPhase("saving");
-    const asset = await persistAsset(file, "uploaded");
+    const anonymousBlob = file.type === mimeType ? file : new Blob([file], { type: mimeType });
+    const asset = await persistAsset(anonymousBlob, "uploaded");
     await requestTranscription(asset);
   }
 
@@ -285,16 +297,18 @@ export function UtteranceInput({
       };
       socket.onmessage = (message) => {
         const event = JSON.parse(message.data);
-        if (event.type === "interim") setInterim(event.text || "");
-        if (event.type === "final" && event.sequence > finalSequence.current) {
-          finalSequence.current = event.sequence;
-          finalTranscript.current = `${finalTranscript.current} ${event.text || ""}`.trim();
-          setTranscriptPreview(finalTranscript.current);
-          setInterim("");
+        const accepted = transcriptAccumulator.current.consume(event);
+        if (accepted?.type === "interim") {
+          setInterim(accepted.interim);
         }
-        if (event.type === "complete") {
+        if (accepted?.type === "final") {
+          finalTranscript.current = accepted.transcript;
+          setTranscriptPreview(accepted.transcript);
+          setInterim(accepted.interim);
+        }
+        if (accepted?.type === "complete") {
           liveComplete.current = true;
-          finalTranscript.current = event.transcript || finalTranscript.current;
+          finalTranscript.current = accepted.transcript;
           offerTranscript(finalTranscript.current);
           setPhase("ready");
           socket.close();
@@ -320,7 +334,7 @@ export function UtteranceInput({
     setTranscriptPreview("");
     setPendingTranscript("");
     finalTranscript.current = "";
-    finalSequence.current = 0;
+    transcriptAccumulator.current = createTranscriptAccumulator();
     liveComplete.current = false;
     setAudioLevel(0);
     try {
@@ -340,7 +354,12 @@ export function UtteranceInput({
         const durationMs = Date.now() - recordingStartedAt.current;
         const asset = await persistAsset(blob, "recorded", durationMs);
         window.setTimeout(() => {
-          if (liveComplete.current && finalTranscript.current) {
+          if (
+            recordingCompletionAction({
+              liveComplete: liveComplete.current,
+              transcript: finalTranscript.current,
+            }) === "adopt-live"
+          ) {
             offerTranscript(finalTranscript.current);
             setPhase("ready");
           } else {
@@ -360,11 +379,7 @@ export function UtteranceInput({
       }, 250);
     } catch (permissionError) {
       setPhase("error");
-      setError(
-        permissionError?.name === "NotAllowedError"
-          ? "麦克风权限被拒绝；仍可上传录音或使用键盘。"
-          : "此浏览器暂时无法开始录音；仍可上传录音或使用键盘。",
-      );
+      setError(microphoneErrorMessage(permissionError));
     }
   }
 
@@ -385,7 +400,7 @@ export function UtteranceInput({
       navigator.mediaDevices?.getUserMedia &&
       globalThis.MediaRecorder,
   );
-  const overLimit = value.length > maxLength;
+  const overLimit = transcriptExceedsLimit(value, maxLength);
 
   return (
     <div className={`utterance-input utterance-input--${phase}`}>
@@ -438,7 +453,15 @@ export function UtteranceInput({
 
       {(phase === "recording" || interim || transcriptPreview) && (
         <div className="voice-live" aria-live="polite">
-          <span><i /> {phase === "recording" ? "港话通实时转写" : "港话通语音转写"}</span>
+          <span>
+            <i /> {phase === "recording"
+              ? capabilities.liveSupported
+                ? "港话通实时转写"
+                : capabilities.uploadSupported
+                  ? "正在录音 · 停止后尝试港话通转写"
+                  : "正在录音 · 仅保存在本机"
+              : "港话通语音转写"}
+          </span>
           {phase === "recording" && (
             <span className="voice-level" aria-label="麦克风音量">
               <i style={{ transform: `scaleX(${Math.max(0.04, audioLevel)})` }} />
@@ -453,10 +476,10 @@ export function UtteranceInput({
           <strong>文字区已有内容，如何采用这段转写？</strong>
           <p>{pendingTranscript}</p>
           <div>
-            <button type="button" onClick={() => { onChange(`${value.trim()} ${pendingTranscript}`.trim()); setPendingTranscript(""); }}>
+            <button type="button" onClick={() => { onChange(mergeTranscriptValue(value, pendingTranscript, "append")); setPendingTranscript(""); }}>
               追加
             </button>
-            <button type="button" onClick={() => { onChange(pendingTranscript); setPendingTranscript(""); }}>
+            <button type="button" onClick={() => { onChange(mergeTranscriptValue(value, pendingTranscript, "replace")); setPendingTranscript(""); }}>
               替换
             </button>
             <button type="button" onClick={() => setPendingTranscript("")}>保留原文</button>
@@ -466,6 +489,16 @@ export function UtteranceInput({
       {overLimit && <p className="voice-error">转写超过 {maxLength} 字，请缩短后再提交；系统没有静默截断。</p>}
       {error && <p className="voice-error">{error}</p>}
       {warning && <p className="voice-warning">{warning}</p>}
+      {volatileAsset && (
+        <section className="voice-volatile" aria-label="尚未保存的内存录音">
+          <p>这段录音只保留在当前页面内存中，刷新或离开前请先下载。</p>
+          <RecordingRow
+            asset={volatileAsset}
+            onTranscribe={requestTranscription}
+            onDelete={() => setVolatileAsset(null)}
+          />
+        </section>
+      )}
 
       {showConsent && (
         <div className="voice-consent" role="alertdialog" aria-labelledby={`${id}-voice-consent`}>

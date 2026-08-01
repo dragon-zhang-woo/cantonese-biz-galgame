@@ -3,15 +3,18 @@ import io
 import wave
 
 import pytest
+import httpx
 
 from app.core.config import Settings
 from app.main import create_app
 from app.services.speech import (
     MAX_UPLOAD_BYTES,
+    HKChatSpeechAdapter,
     SpeechAdapterResult,
     SpeechModuleError,
     SpeechTranscriptionModule,
     _matches_file_signature,
+    _normalise_audio,
 )
 
 
@@ -81,6 +84,53 @@ def _wav_bytes(duration_ms: int = 250) -> bytes:
     return output.getvalue()
 
 
+def _encoded_audio_bytes(container_format: str, codec: str, sample_rate: int) -> bytes:
+    import av
+
+    output = io.BytesIO()
+    with av.open(output, mode="w", format=container_format) as container:
+        stream = container.add_stream(codec, rate=sample_rate)
+        stream.layout = "mono"
+        samples_per_frame = 960 if codec == "libopus" else 1024
+        remaining = sample_rate // 4
+        while remaining > 0:
+            sample_count = min(samples_per_frame, remaining)
+            frame = av.AudioFrame(format="s16", layout="mono", samples=sample_count)
+            frame.sample_rate = sample_rate
+            frame.planes[0].update(b"\x00\x00" * sample_count)
+            for packet in stream.encode(frame):
+                container.mux(packet)
+            remaining -= sample_count
+        for packet in stream.encode(None):
+            container.mux(packet)
+    return output.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("container_format", "codec", "sample_rate"),
+    [
+        ("wav", "pcm_s16le", 16_000),
+        ("mp3", "libmp3lame", 16_000),
+        ("mp4", "aac", 16_000),
+        ("adts", "aac", 16_000),
+        ("ogg", "libopus", 48_000),
+        ("webm", "libopus", 48_000),
+    ],
+)
+def test_real_supported_containers_decode_to_16khz_mono_wav(
+    container_format: str, codec: str, sample_rate: int
+) -> None:
+    normalized, duration_ms = _normalise_audio(
+        _encoded_audio_bytes(container_format, codec, sample_rate)
+    )
+
+    with wave.open(io.BytesIO(normalized), "rb") as audio:
+        assert audio.getframerate() == 16_000
+        assert audio.getnchannels() == 1
+        assert audio.getsampwidth() == 2
+    assert 240 <= duration_ms <= 330
+
+
 def test_uploaded_audio_is_normalized_and_transcribed_without_server_persistence() -> None:
     class RecordingAdapter:
         async def transcribe_file(
@@ -117,6 +167,80 @@ def test_uploaded_audio_is_normalized_and_transcribed_without_server_persistence
         "transcription_source": "hkchat-speech",
         "warnings": [],
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status_code", "expected_code"),
+    [
+        (401, "upstream_auth"),
+        (403, "upstream_auth"),
+        (429, "upstream_rate_limited"),
+        (400, "upstream_unavailable"),
+        (500, "upstream_unavailable"),
+    ],
+)
+async def test_hkchat_file_adapter_maps_upstream_http_failures(
+    status_code: int, expected_code: str
+) -> None:
+    transport = httpx.MockTransport(
+        lambda _request: httpx.Response(status_code, json={"detail": "hidden"})
+    )
+    adapter = HKChatSpeechAdapter(
+        Settings(
+            hkchat_speech_api_key="test-key",
+            hkchat_speech_http_url="https://speech.example.test/transcribe",
+        ),
+        http_transport=transport,
+    )
+
+    with pytest.raises(SpeechModuleError) as failure:
+        await adapter.transcribe_file(_wav_bytes(), language_hint="yue-HK")
+    assert failure.value.code == expected_code
+
+
+@pytest.mark.asyncio
+async def test_hkchat_file_adapter_maps_timeout_and_supports_basic_auth() -> None:
+    timeout_request = None
+
+    def timeout_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal timeout_request
+        timeout_request = request
+        raise httpx.ReadTimeout("provider timeout", request=request)
+
+    timeout_adapter = HKChatSpeechAdapter(
+        Settings(
+            hkchat_speech_api_key="test-key",
+            hkchat_speech_http_url="https://speech.example.test/transcribe",
+        ),
+        http_transport=httpx.MockTransport(timeout_handler),
+    )
+    with pytest.raises(SpeechModuleError) as timeout:
+        await timeout_adapter.transcribe_file(_wav_bytes(), language_hint="auto")
+    assert timeout.value.code == "upstream_timeout"
+    assert timeout_request is not None
+
+    captured_authorization = ""
+
+    def success_handler(request: httpx.Request) -> httpx.Response:
+        nonlocal captured_authorization
+        captured_authorization = request.headers.get("Authorization", "")
+        return httpx.Response(200, json={"text": "收到。", "language": "yue-HK"})
+
+    basic_adapter = HKChatSpeechAdapter(
+        Settings(
+            hkchat_speech_http_url="https://speech.example.test/transcribe",
+            hkchat_speech_auth_mode="basic",
+            hkchat_speech_username="organiser-user",
+            hkchat_speech_password="organiser-password",
+        ),
+        http_transport=httpx.MockTransport(success_handler),
+    )
+    result = await basic_adapter.transcribe_file(_wav_bytes(), language_hint="yue-HK")
+
+    assert captured_authorization.startswith("Basic ")
+    assert result.transcript == "收到。"
+    assert result.detected_language == "yue-HK"
 
 
 def test_live_websocket_relays_ordered_hkchat_transcript_events() -> None:
@@ -179,6 +303,49 @@ def test_live_websocket_relays_ordered_hkchat_transcript_events() -> None:
             "transcript": "我想确认负责人。",
             "source": "hkchat-speech",
         }
+
+
+def test_live_websocket_cancel_reaches_adapter_and_closes_cleanly() -> None:
+    cancelled = False
+
+    class CancelAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError
+
+        async def stream(self, events):
+            nonlocal cancelled
+            yield {"type": "ready"}
+            async for event in events:
+                if isinstance(event, dict) and event.get("type") == "cancel":
+                    cancelled = True
+                    return
+
+    client = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_ws_url="wss://speech.example.test/live",
+            ),
+            speech_adapter=CancelAdapter(),
+        )
+    )
+
+    with client.websocket_connect(
+        "/api/speech/transcriptions/live",
+        headers={"origin": "http://localhost:5173"},
+    ) as socket:
+        socket.send_json(
+            {
+                "type": "start",
+                "scope": "custom-turn",
+                "sample_rate": 16_000,
+                "encoding": "pcm_s16le",
+            }
+        )
+        assert socket.receive_json() == {"type": "ready"}
+        socket.send_json({"type": "cancel"})
+
+    assert cancelled is True
 
 
 def test_corrupt_audio_returns_stable_recoverable_error() -> None:
@@ -309,3 +476,115 @@ async def test_client_speech_limits_isolate_concurrency_and_start_rate() -> None
 
     await module.acquire("client-b")
     await module.release("client-b")
+
+
+@pytest.mark.asyncio
+async def test_live_only_configuration_rejects_file_transcription() -> None:
+    class LiveOnlyAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError("file transcription must stay disabled")
+
+        async def stream(self, events):
+            yield {"type": "ready"}
+
+    module = SpeechTranscriptionModule(
+        Settings(
+            hkchat_speech_api_key="test-key",
+            hkchat_speech_ws_url="wss://speech.example.test/live",
+        ),
+        LiveOnlyAdapter(),
+    )
+
+    with pytest.raises(SpeechModuleError) as not_configured:
+        await module.transcribe_file(
+            _wav_bytes(),
+            content_type="audio/wav",
+            scope="campaign-turn",
+            language_hint="auto",
+        )
+    assert not_configured.value.code == "not_configured"
+
+
+@pytest.mark.asyncio
+async def test_live_stream_deduplicates_sequences_and_merges_final_segments() -> None:
+    class DuplicateAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError
+
+        async def stream(self, events):
+            yield {"type": "ready"}
+            async for event in events:
+                if isinstance(event, bytes):
+                    yield {"type": "interim", "sequence": 1, "text": "我想"}
+                    yield {"type": "interim", "sequence": 1, "text": "重复"}
+                    yield {"type": "final", "sequence": 2, "text": "我想确认"}
+                    yield {"type": "final", "sequence": 2, "text": "重复"}
+                elif event.get("type") == "finish":
+                    yield {"type": "final", "sequence": 3, "text": "负责人。"}
+                    yield {"type": "complete", "transcript": "", "source": "wrong"}
+
+    module = SpeechTranscriptionModule(
+        Settings(
+            hkchat_speech_api_key="test-key",
+            hkchat_speech_ws_url="wss://speech.example.test/live",
+        ),
+        DuplicateAdapter(),
+    )
+
+    async def inputs():
+        yield {
+            "type": "start",
+            "scope": "custom-turn",
+            "sample_rate": 16_000,
+            "encoding": "pcm_s16le",
+        }
+        yield b"\x00\x00" * 160
+        yield {"type": "finish"}
+
+    received = [event async for event in module.live_stream(inputs())]
+
+    assert received == [
+        {"type": "ready"},
+        {"type": "interim", "sequence": 1, "text": "我想"},
+        {"type": "final", "sequence": 2, "text": "我想确认"},
+        {"type": "final", "sequence": 3, "text": "负责人。"},
+        {
+            "type": "complete",
+            "transcript": "我想确认 负责人。",
+            "source": "hkchat-speech",
+        },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_live_stream_enforces_scope_duration_from_pcm_bytes() -> None:
+    class ConsumingAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError
+
+        async def stream(self, events):
+            async for _event in events:
+                pass
+            if False:
+                yield {"type": "ready"}
+
+    module = SpeechTranscriptionModule(
+        Settings(
+            hkchat_speech_api_key="test-key",
+            hkchat_speech_ws_url="wss://speech.example.test/live",
+        ),
+        ConsumingAdapter(),
+    )
+
+    async def inputs():
+        yield {
+            "type": "start",
+            "scope": "campaign-turn",
+            "sample_rate": 16_000,
+            "encoding": "pcm_s16le",
+        }
+        yield b"\x00" * (16_000 * 2 * 90 + 2)
+
+    with pytest.raises(SpeechModuleError) as too_long:
+        _ = [event async for event in module.live_stream(inputs())]
+    assert too_long.value.code == "audio_too_long"

@@ -160,10 +160,15 @@ npm run build
 
 cd backend
 pytest
+
+cd ..
+docker build --tag cantonese-biz-web:local .
+docker build --tag cantonese-biz-api:local ./backend
 ```
 
 GitHub Actions 会在提交到 `develop`、`main` 及相关 Pull Request 时执行同类
-前后端检查。
+前后端检查，并构建 Web 与 API 两个容器镜像。Docker build context 会排除
+本机密钥、虚拟环境、测试输出和未跟踪文档。
 
 ## 发行版与容器
 
