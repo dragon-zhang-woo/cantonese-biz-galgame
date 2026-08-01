@@ -66,7 +66,8 @@
   文件的错误恢复已验证。
 - 本机未安装 Docker CLI，容器构建需由 CI 或 Docker 环境补验；真实港话通
   Speech 验收等待主办方接口契约。
-- 提交 `9bf9b40` 已推送；草稿 PR #18 等待 CI 和外部 Speech 契约验收。
+- 草稿 PR #18 的前端与后端 GitHub Actions 均通过；外部 Speech 契约与
+  Docker 环境验收仍待补齐。
 
 ## 关键入口
 
