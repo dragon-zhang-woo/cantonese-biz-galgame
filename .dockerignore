@@ -8,5 +8,4 @@ output
 *.log
 *.docx
 **/.venv
-backend
 **/__pycache__
