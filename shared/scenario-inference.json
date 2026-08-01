@@ -1,0 +1,145 @@
+{
+  "relationshipRules": [
+    {
+      "value": "跨部门伙伴",
+      "phrases": ["跨部门同事", "跨部门伙伴", "跨部门", "跨团队", "其他部门", "别的团队"],
+      "confidence": "high",
+      "reason": "检测到明确的跨部门协作关系"
+    },
+    {
+      "value": "客户",
+      "phrases": ["客户", "甲方", "客人"],
+      "confidence": "high",
+      "reason": "检测到明确的客户关系"
+    },
+    {
+      "value": "带教经理",
+      "phrases": ["带教经理", "导师", "mentor"],
+      "confidence": "high",
+      "reason": "检测到明确的带教关系"
+    },
+    {
+      "value": "上司",
+      "phrases": ["直属经理", "上司", "经理", "老板", "主管"],
+      "confidence": "high",
+      "reason": "检测到明确的管理关系"
+    },
+    {
+      "value": "同事",
+      "phrases": ["同事", "组员", "团队成员"],
+      "confidence": "medium",
+      "reason": "检测到同事关系"
+    }
+  ],
+  "channelRules": [
+    {
+      "value": "视频会议",
+      "phrases": ["视频会议", "线上会议", "视讯", "zoom", "teams meeting"],
+      "confidence": "high",
+      "reason": "检测到明确的视频会议渠道"
+    },
+    {
+      "value": "邮件",
+      "phrases": ["邮件", "电邮", "email", "e-mail"],
+      "confidence": "high",
+      "reason": "检测到明确的邮件渠道"
+    },
+    {
+      "value": "电话",
+      "phrases": ["电话", "通话", "来电", "call"],
+      "confidence": "high",
+      "reason": "检测到明确的电话渠道"
+    },
+    {
+      "value": "即时消息",
+      "phrases": ["whatsapp", "微信", "消息", "群里", "已读", "即时通讯"],
+      "confidence": "high",
+      "reason": "检测到明确的即时消息渠道"
+    },
+    {
+      "value": "非正式会面",
+      "phrases": ["午饭", "午餐", "咖啡", "茶餐厅", "餐厅", "非正式会面"],
+      "confidence": "high",
+      "reason": "检测到明确的非正式会面渠道"
+    },
+    {
+      "value": "会议",
+      "phrases": ["会议", "会上", "例会", "开会", "汇报会"],
+      "confidence": "medium",
+      "reason": "检测到会议沟通渠道"
+    },
+    {
+      "value": "当面",
+      "phrases": ["当面", "见面", "办公室谈", "面谈"],
+      "confidence": "medium",
+      "reason": "检测到当面沟通渠道"
+    }
+  ],
+  "focusRules": [
+    {
+      "id": "soft-follow-up",
+      "priority": 80,
+      "strongPhrases": ["催进度", "催办", "没有回复", "还没有回复", "一直没回复", "确认负责人和时间"],
+      "reason": "检测到催办、未回复或闭环时间信号"
+    },
+    {
+      "id": "delivery-risk",
+      "priority": 70,
+      "strongPhrases": ["确认延期", "交付延期", "数据出错", "风险已经发生"],
+      "reason": "检测到已发生的交付风险"
+    },
+    {
+      "id": "priority-conflict",
+      "priority": 65,
+      "strongPhrases": ["两件急事", "同时到期", "只能先做一件", "优先级冲突"],
+      "reason": "检测到明确的资源或优先级冲突"
+    },
+    {
+      "id": "scope-request",
+      "priority": 60,
+      "strongPhrases": ["临时加需求", "不加预算", "范围外", "额外需求"],
+      "reason": "检测到范围或交换条件变化"
+    },
+    {
+      "id": "executive-brief",
+      "priority": 55,
+      "strongPhrases": ["一分钟汇报", "高层简报", "只要结论"],
+      "reason": "检测到高层决策简报需求"
+    },
+    {
+      "id": "personal-data-request",
+      "priority": 50,
+      "strongPhrases": ["员工名单", "个人资料", "身份证号码", "客户电话名单"],
+      "reason": "检测到个人资料或授权边界"
+    },
+    {
+      "id": "ambiguous-brief",
+      "priority": 45,
+      "strongPhrases": ["要求不清楚", "不知道交付什么", "只说尽快"],
+      "reason": "检测到任务目标或交付标准不清"
+    },
+    {
+      "id": "workplace-conflict",
+      "priority": 40,
+      "strongPhrases": ["公开反对", "意见冲突", "当场争论", "表达异议", "不合理"],
+      "reason": "检测到需要表达异议或降温的冲突"
+    }
+  ],
+  "personaScenes": {
+    "上司": {"speaker": "何太", "role": "部门直属经理", "visualSceneId": "mrs-ho-manager-office"},
+    "客户": {"speaker": "陈嘉敏", "role": "区域业务总监", "visualSceneId": "chen-client-boardroom"},
+    "跨部门伙伴": {"speaker": "阿朗", "role": "本地项目经理", "visualSceneId": "ah-long-open-office"},
+    "同事": {"speaker": "阿朗", "role": "本地项目经理", "visualSceneId": "ah-long-open-office"},
+    "带教经理": {"speaker": "Vincent 梁志诚", "role": "项目带教经理", "visualSceneId": "vincent-war-room"}
+  },
+  "sceneOverrides": [
+    {"relation": "客户", "channel": "视频会议", "visualSceneId": "chen-video-call"},
+    {"relation": "上司", "channel": "非正式会面", "visualSceneId": "mrs-ho-restaurant"}
+  ],
+  "defaults": {
+    "fallbackPatternId": "workplace-conflict",
+    "relation": "同事",
+    "channel": "当面",
+    "visualSceneId": "ah-long-open-office"
+  }
+}

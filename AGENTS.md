@@ -41,6 +41,9 @@ When implementing from a selected generated mock, treat that image as the source
 - Custom training must carry the anonymized conversation history across rounds; the latest bounded DeepSeek NPC reaction becomes the next turn rather than resetting to a generic scripted prompt.
 - Show DeepSeek role simulation and 港话通 language review as distinct per-turn evidence, disclose fallback use, and let the learner end after a useful closure instead of forcing every planned round.
 - Adaptive custom-scene art uses the approved six-scene batch recorded in `GPT_IMAGE_2_CUSTOM_SCENE_PROMPTS.md`; keep relationship, speaker and background identity aligned.
+- Browser and backend custom-scenario inference must use the shared JSON rules and conformance fixtures; explicit learner choices outrank inferred relation, channel and focus.
+- Keep composition provenance separate from per-turn model provenance. Low-confidence inferred fields must remain visibly correctable before training starts.
+- The judge showcase is a read-only Act 1/4/5 presentation surface: it must never call a model, mutate campaign state, write session storage or alter the canonical story graph.
 
 ## Durable Repository Workflow
 
