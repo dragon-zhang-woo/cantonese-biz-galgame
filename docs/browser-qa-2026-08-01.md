@@ -46,7 +46,7 @@
 - 后端：隔离 `.venv` 中 51 项 Pytest 测试通过。
 - ESLint 与 Vite production build 通过。
 - 当前 Windows 验收机没有安装 Docker CLI，`docker compose build` 未运行；
-  PR CI 已加入 Web/API 两个独立 Docker 镜像构建，等待远端 runner 验证。
+  PR CI 已在 Ubuntu runner 成功构建 Web/API 两个独立 Docker 镜像。
 
 ## 语音审计补强
 
