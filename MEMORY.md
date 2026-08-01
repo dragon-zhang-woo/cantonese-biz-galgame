@@ -8,6 +8,8 @@
 - 稳定基线：`develop` 的 `cae62b5`；v1.0.0、README 与宣传图更新已通过
   PR #9–#16 发布。
 - 当前开发分支：`feature/custom-scenario-showcase-v2`。
+- 草稿 PR：[#17](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pull/17)，
+  目标分支 `develop`；GitHub Actions 前端与后端检查均通过。
 - 项目是 2026 火鸟 AI 黑客松开放赛道作品：以香港职场关系后果驱动的
   商务粤语 AI 视觉小说与训练平台。
 
@@ -49,7 +51,7 @@
   复盘/行动卡及三段评委导览；无横向溢出、控制台错误或阻断控制。
 - 评委导览在空存档下完整运行前后均未写入 `localStorage`；退出后仍处于原主线
   第一幕，`nextSceneId` 与主线数值未改变。
-- 待完成：最终 diff 审查、提交推送与面向 `develop` 的草稿 PR。
+- 提交 `03e54eb` 已推送；草稿 PR #17 可合并，前端与后端 CI 均通过。
 
 ## 关键入口
 
