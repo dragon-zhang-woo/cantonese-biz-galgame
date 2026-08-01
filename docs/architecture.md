@@ -11,8 +11,8 @@ Hong Kong business fit. Neither provider can choose a different next node.
 
 The training platform adds a second deterministic layer: a scenario composer
 classifies a redacted workplace description, retrieves source-bound skill
-cards, and assembles two or three rounds from controlled templates. It never
-stores the raw description.
+cards, and assembles three to six rounds from controlled templates. Browser
+and API inference share one JSON rule set and one conformance-fixture suite.
 
 ## Turn lifecycle
 
@@ -29,16 +29,20 @@ stores the raw description.
 
 ## Custom scenario lifecycle
 
-1. The browser validates 20–500 characters and redacts names, organisations,
+1. The browser validates 20–1000 characters and redacts names, organisations,
    contact details, URLs, addresses and secret-like strings.
 2. `POST /api/scenario/compose` classifies relationship, task, conflict,
    channel and pressure.
 3. The backend retrieves relevant skill cards and their official sources.
-4. The composer returns two or three bounded rounds with an explicit goal.
+4. The composer returns 3–6 bounded rounds, composition provenance, a visual
+   scene ID and confidence-labelled relation/channel/focus inference.
 5. The existing turn API performs each NPC response and language review.
-6. The browser scores six observable behaviours from 0–4 and produces a
-   reusable action template.
-7. If the composer is unavailable, the browser matches the closest authored
+6. The learner can correct low-confidence inference before starting; the
+   browser retains only the anonymised draft during the mounted experience.
+7. The browser scores six observable behaviours from 0–4, shows the per-round
+   progression and produces an explicitly copied action card that excludes
+   original input and round answers.
+8. If the composer is unavailable, the browser matches the closest authored
    scenario without retaining the raw input.
 
 ## Trust boundaries
@@ -47,7 +51,9 @@ stores the raw description.
 - The browser receives no provider credential.
 - CORS is restricted through `ALLOWED_ORIGINS`.
 - The backend does not persist request bodies.
-- Custom-scenario raw text is cleared from component state after composition.
+- Custom-scenario raw text is replaced by the anonymised draft after
+  composition and cleared when the experience unmounts; neither form is
+  written to storage.
 - Source records are reviewed metadata, not scraped page bodies.
 - User identity and microphone audio are outside the MVP.
 
@@ -67,3 +73,10 @@ async def review(request: TurnRequest) -> LocalizationFeedback
 
 The game engine composes both contracts into one `TurnResponse` while keeping
 the fixed story graph authoritative.
+
+## Judge showcase boundary
+
+The judge showcase reads Act 1, 4 and 5 data through a separate React state
+container. It does not call either API, invoke the campaign transition
+functions or write session storage. “Enter full campaign” closes the showcase
+and resumes the existing campaign scene rather than replacing its checkpoint.

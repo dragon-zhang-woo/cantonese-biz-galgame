@@ -5,15 +5,18 @@ from uuid import uuid4
 
 from app.models.schemas import (
     ComposedScenario,
+    InferenceResult,
     KnowledgeSourceRef,
     RedactionSummary,
     ScenarioComposeRequest,
+    ScenarioInference,
     ScenarioRound,
     SkillCardRef,
 )
 
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+SHARED_DIR = Path(__file__).resolve().parents[3] / "shared"
 
 
 def _load_json(name: str):
@@ -21,10 +24,16 @@ def _load_json(name: str):
         return json.load(handle)
 
 
+def _load_shared_json(name: str):
+    with (SHARED_DIR / name).open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
 SOURCES = _load_json("sources.json")
 SKILL_CARDS = _load_json("skill_cards.json")
 CASE_PATTERNS = _load_json("case_patterns.json")
 SCENARIO_TEMPLATES = _load_json("scenario_templates.json")
+INFERENCE_CONFIG = _load_shared_json("scenario-inference.json")
 
 SOURCE_BY_ID = {item["id"]: item for item in SOURCES}
 SKILL_BY_ID = {item["id"]: item for item in SKILL_CARDS}
@@ -56,10 +65,11 @@ REDACTION_PATTERNS = [
     (
         "地址",
         re.compile(
-            r"[\u4e00-\u9fffA-Za-z0-9]{2,24}"
-            r"(?:路|街|道|巷|大厦|中心|广场|楼|座)"
-            r"[\u4e00-\u9fffA-Za-z0-9\-]{0,18}"
-            r"(?:号|室|楼)?"
+            r"(?:地址(?:是|为|在|[:：])?\s*"
+            r"[\u4e00-\u9fffA-Za-z0-9\-]{2,40}(?=[，。；,;]|$))|"
+            r"(?:[\u4e00-\u9fffA-Za-z]{2,24}(?:路|街|道|巷)"
+            r"[\u4e00-\u9fffA-Za-z\-]{0,12}\d{1,6}"
+            r"(?:号|號|室|楼|樓|座)?)"
         ),
     ),
 ]
@@ -121,8 +131,28 @@ def redact_description(value: str) -> tuple[str, RedactionSummary]:
     return redacted, RedactionSummary(count=count, categories=categories)
 
 
+FOCUS_RULE_BY_ID = {
+    rule["id"]: rule for rule in INFERENCE_CONFIG["focusRules"]
+}
+
+
+def _normalize(value: str) -> str:
+    return " ".join(value.lower().split())
+
+
 def _pattern_score(pattern: dict, description: str) -> int:
-    return sum(2 for keyword in pattern["keywords"] if keyword.lower() in description.lower())
+    text = _normalize(description)
+    keyword_score = sum(
+        2 for keyword in pattern["keywords"] if _normalize(keyword) in text
+    )
+    strong_score = sum(
+        6
+        for phrase in FOCUS_RULE_BY_ID.get(pattern["id"], {}).get(
+            "strongPhrases", []
+        )
+        if _normalize(phrase) in text
+    )
+    return keyword_score + strong_score
 
 
 def _classification_text(description: str) -> str:
@@ -145,62 +175,70 @@ FOCUS_PATTERN_IDS = {
     "表达异议": "workplace-conflict",
 }
 
-PERSONAS = {
-    "上司": {
-        "speaker": "何太",
-        "role": "部门直属经理",
-        "background": "/assets/custom-mrs-ho-manager-office-v01.png",
-    },
-    "客户": {
-        "speaker": "陈嘉敏",
-        "role": "区域业务总监",
-        "background": "/assets/custom-chen-client-boardroom-v01.png",
-    },
-    "跨部门伙伴": {
-        "speaker": "阿朗",
-        "role": "本地项目经理",
-        "background": "/assets/custom-ah-long-open-office-v01.png",
-    },
-    "同事": {
-        "speaker": "阿朗",
-        "role": "本地项目经理",
-        "background": "/assets/custom-ah-long-open-office-v01.png",
-    },
-    "带教经理": {
-        "speaker": "Vincent 梁志诚",
-        "role": "项目带教经理",
-        "background": "/assets/custom-vincent-war-room-v01.png",
-    },
+VISUAL_BACKGROUNDS = {
+    "vincent-war-room": "/assets/custom-vincent-war-room-v01.png",
+    "mrs-ho-manager-office": "/assets/custom-mrs-ho-manager-office-v01.png",
+    "chen-client-boardroom": "/assets/custom-chen-client-boardroom-v01.png",
+    "ah-long-open-office": "/assets/custom-ah-long-open-office-v01.png",
+    "chen-video-call": "/assets/custom-chen-video-call-v01.png",
+    "mrs-ho-restaurant": "/assets/custom-mrs-ho-restaurant-v01.png",
 }
 
 
-def _select_patterns(description: str, focus: str) -> list[dict]:
+def _select_patterns(
+    description: str, focus: str
+) -> tuple[list[dict], InferenceResult]:
+    if focus != "自动":
+        pattern_id = FOCUS_PATTERN_IDS[focus]
+        pattern = next(item for item in CASE_PATTERNS if item["id"] == pattern_id)
+        return [pattern], InferenceResult(
+            value=pattern["task"],
+            confidence="high",
+            reasons=["采用你确认的训练重点"],
+        )
+
     scored = [
-        (item, _pattern_score(item, description))
+        (
+            item,
+            _pattern_score(item, description),
+            FOCUS_RULE_BY_ID.get(item["id"], {}).get("priority", 0),
+        )
         for item in CASE_PATTERNS
     ]
     ranked = sorted(
         scored,
-        key=lambda pair: (pair[1], -CASE_PATTERNS.index(pair[0])),
+        key=lambda entry: (
+            entry[1],
+            entry[2],
+            -CASE_PATTERNS.index(entry[0]),
+        ),
         reverse=True,
     )
 
     selected: list[dict] = []
-    focused_id = FOCUS_PATTERN_IDS.get(focus)
-    if focused_id:
-        selected.append(next(item for item in CASE_PATTERNS if item["id"] == focused_id))
-
-    for item, score in ranked:
-        if score <= 0 or item in selected:
+    for item, score, _priority in ranked:
+        if score <= 0:
             continue
         if (
             item["id"] == "soft-follow-up"
-            and "催" in description
+            and selected
+            and selected[0]["id"] == "delivery-risk"
             and not any(
-                keyword in description
-                for keyword in ("跟进", "没回复", "未回复", "得闲", "有空")
+                signal in description
+                for signal in (
+                    "跟进",
+                    "没回复",
+                    "未回复",
+                    "没有回复",
+                    "还没有回复",
+                    "一直没回复",
+                    "得闲",
+                    "有空",
+                    "催进度",
+                    "催办",
+                    "确认负责人和时间",
+                )
             )
-            and any(pattern["id"] == "delivery-risk" for pattern, value in ranked if value > 0)
         ):
             continue
         selected.append(item)
@@ -211,34 +249,76 @@ def _select_patterns(description: str, focus: str) -> list[dict]:
         selected.append(
             next(item for item in CASE_PATTERNS if item["id"] == "workplace-conflict")
         )
-    return selected[:2]
+    primary = selected[0]
+    score = next(value for item, value, _priority in ranked if item is primary)
+    rule = FOCUS_RULE_BY_ID.get(primary["id"], {})
+    confidence = "high" if score >= 6 else "medium" if score > 0 else "low"
+    reason = rule.get("reason", "根据任务描述匹配训练模式")
+    if score == 0:
+        reason = "未检测到明确任务，采用通用异议训练"
+    return selected[:2], InferenceResult(
+        value=primary["task"],
+        confidence=confidence,
+        reasons=[reason],
+    )
 
 
-def _relationship_from_text(description: str, fallback: str) -> str:
-    relationship_keywords = {
-        "客户": ["客户", "甲方", "客人"],
-        "上司": ["上司", "经理", "老板", "主管"],
-        "跨部门伙伴": ["跨部门", "其他部门", "别的团队"],
-        "同事": ["同事", "组员", "团队成员"],
-    }
-    for relationship, keywords in relationship_keywords.items():
-        if any(keyword.lower() in description.lower() for keyword in keywords):
-            return relationship
-    return fallback
+def _match_rule(description: str, rules: list[dict]) -> dict | None:
+    text = _normalize(description)
+    return next(
+        (
+            rule
+            for rule in rules
+            if any(_normalize(phrase) in text for phrase in rule["phrases"])
+        ),
+        None,
+    )
 
 
-def _channel_from_text(description: str, fallback: str) -> str:
-    channel_keywords = {
-        "邮件": ["邮件", "email", "电邮"],
-        "电话": ["电话", "通话", "call"],
-        "即时消息": ["微信", "WhatsApp", "消息", "群里", "即时"],
-        "会议": ["会议", "会上", "汇报", "例会"],
-        "当面": ["当面", "办公室", "午饭", "见面"],
-    }
-    for channel, keywords in channel_keywords.items():
-        if any(keyword.lower() in description.lower() for keyword in keywords):
-            return channel
-    return fallback
+def _infer_dimension(
+    description: str,
+    preference: str,
+    fallback: str,
+    rules: list[dict],
+    label: str,
+) -> InferenceResult:
+    if preference != "自动":
+        return InferenceResult(
+            value=preference,
+            confidence="high",
+            reasons=[f"采用你确认的{label}"],
+        )
+    rule = _match_rule(description, rules)
+    if rule:
+        return InferenceResult(
+            value=rule["value"],
+            confidence=rule["confidence"],
+            reasons=[rule["reason"]],
+        )
+    return InferenceResult(
+        value=fallback,
+        confidence="low",
+        reasons=[f"没有明确{label}线索，按主要任务模板补足"],
+    )
+
+
+def _visual_scene_id(relation: str, channel: str) -> str:
+    override = next(
+        (
+            item
+            for item in INFERENCE_CONFIG["sceneOverrides"]
+            if item["relation"] == relation and item["channel"] == channel
+        ),
+        None,
+    )
+    if override:
+        return override["visualSceneId"]
+    return INFERENCE_CONFIG["personaScenes"].get(
+        relation,
+        {
+            "visualSceneId": INFERENCE_CONFIG["defaults"]["visualSceneId"]
+        },
+    )["visualSceneId"]
 
 
 def _source_ref(source: dict) -> KnowledgeSourceRef:
@@ -346,7 +426,9 @@ def _rounds(
 def compose_scenario(request: ScenarioComposeRequest) -> ComposedScenario:
     redacted_description, redaction = redact_description(request.description)
     classification_text = _classification_text(redacted_description)
-    patterns = _select_patterns(classification_text, request.focus)
+    patterns, focus_inference = _select_patterns(
+        classification_text, request.focus
+    )
     primary_pattern = patterns[0]
     skill_ids = list(
         dict.fromkeys(
@@ -364,35 +446,32 @@ def compose_scenario(request: ScenarioComposeRequest) -> ComposedScenario:
         )
     )
     sources = [SOURCE_BY_ID[source_id] for source_id in source_ids]
-    channel = (
-        request.channel
-        if request.channel != "自动"
-        else _channel_from_text(classification_text, primary_pattern["channel"])
+    relation_inference = _infer_dimension(
+        classification_text,
+        request.relation,
+        primary_pattern["relation"],
+        INFERENCE_CONFIG["relationshipRules"],
+        "关系",
     )
-    relationship = (
-        request.relation
-        if request.relation != "自动"
-        else _relationship_from_text(classification_text, primary_pattern["relation"])
+    channel_inference = _infer_dimension(
+        classification_text,
+        request.channel,
+        primary_pattern["channel"],
+        INFERENCE_CONFIG["channelRules"],
+        "渠道",
     )
+    relationship = relation_inference.value
+    channel = channel_inference.value
     difficulty = SCENARIO_TEMPLATES["pressureLevels"][request.pressure]["difficulty"]
-    persona = PERSONAS.get(
+    persona = INFERENCE_CONFIG["personaScenes"].get(
         relationship,
         {
             "speaker": primary_pattern["npc"]["speaker"],
             "role": primary_pattern["npc"]["role"],
-            "background": primary_pattern["background"],
+            "visualSceneId": INFERENCE_CONFIG["defaults"]["visualSceneId"],
         },
     )
-    if channel == "视频会议" and relationship == "客户":
-        persona = {
-            **persona,
-            "background": "/assets/custom-chen-video-call-v01.png",
-        }
-    elif channel == "非正式会面" and relationship == "上司":
-        persona = {
-            **persona,
-            "background": "/assets/custom-mrs-ho-restaurant-v01.png",
-        }
+    visual_scene_id = _visual_scene_id(relationship, channel)
     tasks = [pattern["task"] for pattern in patterns]
     task = "与".join(tasks)
     objective = "；同时".join(skill["objective"] for skill in skills[:2])
@@ -414,7 +493,8 @@ def compose_scenario(request: ScenarioComposeRequest) -> ComposedScenario:
         hidden_risk=_relationship_risk(skills),
         transfer_template=transfer_template,
         fallback_scenario_id=primary_pattern["fallbackScenarioId"],
-        background=persona["background"],
+        visual_scene_id=visual_scene_id,
+        background=VISUAL_BACKGROUNDS[visual_scene_id],
         redacted_description=redacted_description,
         redaction=redaction,
         skill_cards=[_skill_ref(skill) for skill in skills],
@@ -430,4 +510,10 @@ def compose_scenario(request: ScenarioComposeRequest) -> ComposedScenario:
             "高风险情况请使用所属机构的正式流程或官方求助渠道。"
         ),
         provider="rules+knowledge",
+        composition_source="rules+knowledge",
+        inference=ScenarioInference(
+            relation=relation_inference,
+            channel=channel_inference,
+            focus=focus_inference,
+        ),
     )

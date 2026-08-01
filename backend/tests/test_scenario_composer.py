@@ -9,6 +9,9 @@ from app.models.schemas import ScenarioComposeRequest
 from app.services.scenario_composer import compose_scenario, redact_description
 
 
+SHARED_DIR = Path(__file__).resolve().parents[2] / "shared"
+
+
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
@@ -31,6 +34,15 @@ def test_redacts_personal_and_confidential_information() -> None:
     assert {"姓名", "机构名称", "电话", "电邮", "凭证"}.issubset(
         set(summary.categories)
     )
+
+
+def test_address_redaction_does_not_consume_ordinary_wording() -> None:
+    text = "负责人还没有回复，我不知道怎么说明时间和下一步。"
+
+    redacted, summary = redact_description(text)
+
+    assert redacted == text
+    assert "地址" not in summary.categories
 
 
 def test_composes_bounded_priority_training() -> None:
@@ -162,4 +174,36 @@ def test_compose_endpoint_returns_structured_scenario() -> None:
     payload = response.json()
     assert payload["task"] == "任务澄清"
     assert payload["provider"] == "rules+knowledge"
+    assert payload["composition_source"] == "rules+knowledge"
+    assert payload["visual_scene_id"]
+    assert payload["inference"]["focus"]["value"] == "任务澄清"
     assert len(payload["rounds"]) == 3
+
+
+def test_shared_inference_fixtures_match_backend() -> None:
+    fixtures = json.loads(
+        (SHARED_DIR / "scenario-inference-fixtures.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    for fixture in fixtures:
+        preferences = fixture["preferences"]
+        expected = fixture["expected"]
+        scenario = compose_scenario(
+            ScenarioComposeRequest(
+                description=fixture["description"],
+                pressure="直接",
+                rounds=3,
+                relation=preferences["relation"],
+                channel=preferences["channel"],
+                focus=preferences["focus"],
+            )
+        )
+        assert scenario.inference.relation.value == expected["relation"], fixture["id"]
+        assert scenario.inference.channel.value == expected["channel"], fixture["id"]
+        assert (
+            scenario.inference.channel.confidence
+            == expected["channelConfidence"]
+        ), fixture["id"]
+        assert scenario.inference.focus.value == expected["focus"], fixture["id"]

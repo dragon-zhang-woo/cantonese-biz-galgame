@@ -36,6 +36,7 @@ import {
   PracticeResult,
 } from "./components/PracticeExperience.jsx";
 import { CustomScenarioExperience } from "./components/CustomScenarioExperience.jsx";
+import { JudgeShowcase } from "./components/JudgeShowcase.jsx";
 import {
   buildCustomOption,
   canSubmitFreeResponse,
@@ -362,7 +363,7 @@ function Aftermath({
   );
 }
 
-function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
+function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resumeStage }) {
   const canResume = Boolean(resumeStage);
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="intro-title">
@@ -405,6 +406,14 @@ function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
             <ArrowRight weight="bold" aria-hidden="true" />
           </button>
         </div>
+        <button className="judge-showcase-entry" type="button" onClick={onShowcase}>
+          <FilmStrip weight="duotone" aria-hidden="true" />
+          <span>
+            <strong>90 秒评委演示</strong>
+            <small>精选第 1、4、5 幕 · 零网络 · 不改变主线存档</small>
+          </span>
+          <ArrowRight weight="bold" aria-hidden="true" />
+        </button>
         {canResume && (
           <button className="text-button intro-reset" type="button" onClick={onRestart}>
             重新开始本次演练
@@ -512,6 +521,7 @@ export function App() {
   const [showPracticeBrief, setShowPracticeBrief] = useState(false);
   const [showPracticeResult, setShowPracticeResult] = useState(false);
   const [showCustomScenario, setShowCustomScenario] = useState(false);
+  const [showJudgeShowcase, setShowJudgeShowcase] = useState(false);
   const [practiceScore, setPracticeScore] = useState(0);
   const [practiceRubric, setPracticeRubric] = useState(null);
   const [practiceProgress, setPracticeProgress] = useState(() =>
@@ -545,6 +555,7 @@ export function App() {
     showPracticeBrief ||
     showPracticeResult ||
     showCustomScenario ||
+    showJudgeShowcase ||
     isEnded;
 
   useEffect(() => {
@@ -701,6 +712,19 @@ export function App() {
     setLiveMessage("已打开我的现实情境");
   }
 
+  function openJudgeShowcase() {
+    setShowJudgeShowcase(true);
+    setLiveMessage("已打开 90 秒评委演示");
+  }
+
+  function enterCampaignFromShowcase() {
+    setShowJudgeShowcase(false);
+    setExperience("campaign");
+    setStarted(true);
+    setShowPrelude(true);
+    setLiveMessage("已从精选导览进入完整主线");
+  }
+
   function selectPracticeScenario(scenario) {
     setExperience("practice");
     setPracticeSceneId(scenario.id);
@@ -734,6 +758,7 @@ export function App() {
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
     setShowCustomScenario(false);
+    setShowJudgeShowcase(false);
     setShowPrelude(false);
     setShowDossiers(false);
     setShowAftermath(false);
@@ -805,6 +830,7 @@ export function App() {
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
     setShowCustomScenario(false);
+    setShowJudgeShowcase(false);
     setPracticeScore(0);
     setPracticeRubric(null);
     setResumeAvailable(false);
@@ -1066,6 +1092,7 @@ export function App() {
           }}
           onPractice={openPracticeLibrary}
           onCustom={openCustomScenario}
+          onShowcase={openJudgeShowcase}
           onRestart={restart}
           resumeStage={resumeAvailable ? scene.stage : null}
         />
@@ -1131,6 +1158,12 @@ export function App() {
       )}
       {showCustomScenario && (
         <CustomScenarioExperience onHome={returnHome} />
+      )}
+      {showJudgeShowcase && (
+        <JudgeShowcase
+          onClose={() => setShowJudgeShowcase(false)}
+          onEnterCampaign={enterCampaignFromShowcase}
+        />
       )}
       {experience === "campaign" && started && isEnded && (
         <Ending status={status} history={history} onRestart={restart} onHome={returnHome} />

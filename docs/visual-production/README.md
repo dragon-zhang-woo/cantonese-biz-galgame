@@ -8,8 +8,9 @@
 4. [`GPT_IMAGE_2_PROMPT_TEMPLATES.md`](GPT_IMAGE_2_PROMPT_TEMPLATES.md)：角色锚点、主场景、编辑和道具图提示词模板。
 5. [`GPT_IMAGE_2_CONCRETE_PROMPTS.md`](GPT_IMAGE_2_CONCRETE_PROMPTS.md)：可直接复制使用的四名角色锚点、五组反应参考、五张建立镜头和十二张剧情插图提示词。
 6. [`ASSET_GENERATION_LOG.csv`](ASSET_GENERATION_LOG.csv)：逐资产生成、编辑、输入参考和 QA 台账。
-7. [`../../ASSET_SOURCES.md`](../../ASSET_SOURCES.md)：正式素材来源、原创性与第三方许可台账。
-8. [`../../AGENTS.md`](../../AGENTS.md)：项目长期视觉约束和不可破坏的实现决策。
+7. [`GPT_IMAGE_2_SHOWCASE_PROMPT.md`](GPT_IMAGE_2_SHOWCASE_PROMPT.md)：评委演示模式第四幕关键后果镜头及修订记录。
+8. [`../../ASSET_SOURCES.md`](../../ASSET_SOURCES.md)：正式素材来源、原创性与第三方许可台账。
+9. [`../../AGENTS.md`](../../AGENTS.md)：项目长期视觉约束和不可破坏的实现决策。
 
 ## 事实与创作标准
 

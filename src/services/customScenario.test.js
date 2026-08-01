@@ -25,6 +25,20 @@ describe("custom scenario privacy", () => {
     expect(result.text).toHaveLength(CUSTOM_SCENARIO_MAX_LENGTH);
   });
 
+  it("keeps ordinary wording that contains 道 while redacting actual addresses", () => {
+    const ordinary = sanitizeCustomDescription(
+      "负责人还没有回复，我不知道怎么说明时间和下一步。",
+    );
+    const privateAddress = sanitizeCustomDescription(
+      "项目地址是皇后大道东248号，请帮我准备沟通。",
+    );
+
+    expect(ordinary.text).toContain("不知道怎么说明时间和下一步");
+    expect(ordinary.categories).not.toContain("地址");
+    expect(privateAddress.text).not.toContain("皇后大道东248号");
+    expect(privateAddress.categories).toContain("地址");
+  });
+
   it("redacts an organisation named through ordinary workplace context", () => {
     const result = sanitizeCustomDescription(
       "我在星火科技负责客户项目，需要练习如何解释交付延期并确认下一步。",
