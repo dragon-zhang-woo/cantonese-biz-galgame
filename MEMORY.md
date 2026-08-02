@@ -84,6 +84,9 @@
 - HKGAI Studio Speech 专用前端脚本只实现 TTS、整文件识别和会议转写：识别
   路径先用 `FileReader` 读取完整文件再提交 JSON/Base64；专用脚本和已加载资源
   均无实时 ASR / WebSocket 调用。生产代码已移除猜测式上游 WebSocket Relay。
+- `docs/hkchat-live-asr-contract-request.md` 汇总了向主办方索取流式 ASR 时必需的
+  连接、鉴权、帧格式、事件、错误、隐私与验收问题；取得正式答复后再实现
+  production live Adapter。
 
 ## 关键入口
 

@@ -144,6 +144,10 @@ cp .env.example .env
 显式注入经过契约验证的实时 Adapter。没有语音配置时，录音仍可保存在本机并
 下载，键盘和离线训练完全不受影响。
 
+如需向主办方申请实时 ASR 契约，可直接使用
+[`docs/hkchat-live-asr-contract-request.md`](docs/hkchat-live-asr-contract-request.md)
+中的最小问题清单和验收标准。
+
 ### Docker Compose
 
 先复制 `backend/.env.example` 为 `backend/.env`，然后运行：
