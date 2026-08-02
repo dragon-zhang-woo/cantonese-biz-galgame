@@ -125,6 +125,7 @@ export function UtteranceInput({
   const [volatileAsset, setVolatileAsset] = useState(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [microphoneDenied, setMicrophoneDenied] = useState(false);
   const pendingAction = useRef(null);
   const fileInput = useRef(null);
   const mediaRecorder = useRef(null);
@@ -153,6 +154,26 @@ export function UtteranceInput({
   useEffect(() => {
     getSpeechCapabilities().then(setCapabilities);
     refreshLibrary();
+  }, []);
+
+  useEffect(() => {
+    let permissionStatus;
+    let disposed = false;
+    const syncPermission = () => {
+      if (!disposed) setMicrophoneDenied(permissionStatus?.state === "denied");
+    };
+    navigator.permissions
+      ?.query?.({ name: "microphone" })
+      .then((status) => {
+        permissionStatus = status;
+        syncPermission();
+        permissionStatus.addEventListener?.("change", syncPermission);
+      })
+      .catch(() => {});
+    return () => {
+      disposed = true;
+      permissionStatus?.removeEventListener?.("change", syncPermission);
+    };
   }, []);
 
   useEffect(
@@ -363,6 +384,7 @@ export function UtteranceInput({
             offerTranscript(finalTranscript.current);
             setPhase("ready");
           } else {
+            liveSocket.current?.close();
             requestTranscription(asset);
           }
         }, capabilities.liveSupported ? 1200 : 0);
@@ -378,16 +400,32 @@ export function UtteranceInput({
         if (elapsed >= capabilities.recordingLimitsMs[scope]) stopRecording();
       }, 250);
     } catch (permissionError) {
+      window.clearInterval(recordingTimer.current);
+      liveSocket.current?.close();
+      audioNode.current?.disconnect();
+      audioContext.current?.close();
+      mediaStream.current?.getTracks().forEach((track) => track.stop());
+      mediaRecorder.current = null;
+      mediaStream.current = null;
+      liveSocket.current = null;
+      audioNode.current = null;
+      audioContext.current = null;
       setPhase("error");
       setError(microphoneErrorMessage(permissionError));
+      if (["NotAllowedError", "PermissionDeniedError"].includes(permissionError?.name)) {
+        setMicrophoneDenied(true);
+      }
     }
   }
 
   function stopRecording() {
     if (mediaRecorder.current?.state === "recording") mediaRecorder.current.stop();
     window.clearInterval(recordingTimer.current);
-    liveSocket.current?.readyState === WebSocket.OPEN &&
+    if (liveSocket.current?.readyState === WebSocket.OPEN) {
       liveSocket.current.send(JSON.stringify({ type: "finish" }));
+    } else if (liveSocket.current?.readyState === WebSocket.CONNECTING) {
+      liveSocket.current.close();
+    }
     audioNode.current?.disconnect();
     audioContext.current?.close();
     mediaStream.current?.getTracks().forEach((track) => track.stop());
@@ -396,7 +434,8 @@ export function UtteranceInput({
   }
 
   const microphoneSupported = Boolean(
-    window.isSecureContext &&
+    !microphoneDenied &&
+      window.isSecureContext &&
       navigator.mediaDevices?.getUserMedia &&
       globalThis.MediaRecorder,
   );

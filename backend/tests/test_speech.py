@@ -457,6 +457,61 @@ def test_empty_and_oversized_uploads_use_stable_errors() -> None:
 
 
 @pytest.mark.asyncio
+async def test_uploaded_audio_enforces_the_scope_duration_limit() -> None:
+    class NeverCalledAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError("overlong audio must not reach the provider")
+
+    module = SpeechTranscriptionModule(
+        Settings(
+            hkchat_speech_api_key="test-key",
+            hkchat_speech_http_url="https://speech.example.test/transcribe",
+        ),
+        NeverCalledAdapter(),
+    )
+
+    with pytest.raises(SpeechModuleError) as too_long:
+        await module.transcribe_file(
+            _wav_bytes(90_001),
+            content_type="audio/wav",
+            scope="campaign-turn",
+            language_hint="yue-HK",
+        )
+    assert too_long.value.code == "audio_too_long"
+
+
+def test_upload_resource_is_closed_after_a_failed_request(monkeypatch) -> None:
+    from starlette.datastructures import UploadFile
+
+    closed_filenames: list[str | None] = []
+    original_close = UploadFile.close
+
+    async def tracked_close(upload: UploadFile) -> None:
+        closed_filenames.append(upload.filename)
+        await original_close(upload)
+
+    monkeypatch.setattr(UploadFile, "close", tracked_close)
+    client = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="https://speech.example.test/transcribe",
+            )
+        )
+    )
+
+    response = client.post(
+        "/api/speech/transcriptions",
+        data={"scope": "campaign-turn", "language_hint": "auto"},
+        files={"audio": ("private-name.wav", b"not audio", "audio/wav")},
+    )
+
+    assert response.status_code == 415
+    assert closed_filenames
+    assert set(closed_filenames) == {"private-name.wav"}
+
+
+@pytest.mark.asyncio
 async def test_client_speech_limits_isolate_concurrency_and_start_rate() -> None:
     module = SpeechTranscriptionModule(Settings())
     await module.acquire("client-a")

@@ -74,8 +74,8 @@ class FakeMediaRecorder {
   }
 }
 
-function ControlledInput() {
-  const [value, setValue] = useState("");
+function ControlledInput({ initialValue = "" }) {
+  const [value, setValue] = useState(initialValue);
   return (
     <UtteranceInput
       id="voice-test"
@@ -88,8 +88,8 @@ function ControlledInput() {
   );
 }
 
-function renderInput() {
-  return render(<ControlledInput />);
+function renderInput(props) {
+  return render(<ControlledInput {...props} />);
 }
 
 beforeEach(() => {
@@ -110,6 +110,11 @@ beforeEach(() => {
     configurable: true,
     value: vi.fn(),
   });
+  globalThis.Audio = class FakeAudio {
+    set src(_value) {
+      queueMicrotask(() => this.onerror?.());
+    }
+  };
 });
 
 afterEach(() => cleanup());
@@ -133,6 +138,7 @@ describe("UtteranceInput recording lifecycle", () => {
     expect(await screen.findByText(/麦克风权限被拒绝/)).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "你的回应" }).disabled).toBe(false);
     expect(screen.getByRole("button", { name: "上传录音" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "语音输入" })).toBeNull();
   });
 
   it("locks text while recording, stops cleanly and retains audio when ASR is unavailable", async () => {
@@ -161,6 +167,186 @@ describe("UtteranceInput recording lifecycle", () => {
     expect(stopTrack).toHaveBeenCalledTimes(1);
     expect(await screen.findByText(/文件转写尚未配置/)).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "你的回应" }).readOnly).toBe(false);
+  });
+
+  it("closes a still-connecting live socket when the learner stops quickly", async () => {
+    const socket = {
+      readyState: WebSocket.CONNECTING,
+      close: vi.fn(),
+      send: vi.fn(),
+    };
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      liveSupported: true,
+      uploadSupported: true,
+    });
+    speechMocks.createLiveSpeechSocket.mockReturnValue(socket);
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "语音输入" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /停止 0s/ }));
+
+    expect(socket.close).toHaveBeenCalledTimes(1);
+    expect(socket.send).not.toHaveBeenCalled();
+  });
+
+  it("releases the microphone stream when recorder initialization fails", async () => {
+    const stopTrack = vi.fn();
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: stopTrack }],
+        }),
+      },
+    });
+    globalThis.MediaRecorder = class BrokenMediaRecorder {
+      static isTypeSupported() {
+        return true;
+      }
+
+      constructor() {
+        throw new Error("recorder unavailable");
+      }
+    };
+    renderInput();
+
+    fireEvent.click(screen.getByRole("button", { name: "语音输入" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+
+    expect(await screen.findByText(/无法开始录音/)).toBeTruthy();
+    expect(stopTrack).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("textbox", { name: "你的回应" }).disabled).toBe(false);
+  });
+
+  it("keeps authored text until the learner explicitly appends an uploaded transcript", async () => {
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      uploadSupported: true,
+    });
+    speechMocks.transcribeAudio.mockResolvedValue({
+      transcript: "请确认负责人同更新时间",
+      detectedLanguage: "yue-HK",
+      durationMs: 1200,
+      transcriptionSource: "hkchat-speech",
+      warnings: [],
+    });
+    const view = renderInput({ initialValue: "我会先核对影响范围" });
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "上传录音" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    fireEvent.change(view.container.querySelector('input[type="file"]'), {
+      target: {
+        files: [new File(["RIFFaudio"], "private-meeting.wav", { type: "audio/wav" })],
+      },
+    });
+
+    expect(await screen.findByText(/文字区已有内容/)).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(
+      "我会先核对影响范围",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+    expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(
+      "我会先核对影响范围 请确认负责人同更新时间",
+    );
+
+    fireEvent.change(view.container.querySelector('input[type="file"]'), {
+      target: {
+        files: [new File(["RIFFaudio"], "second.wav", { type: "audio/wav" })],
+      },
+    });
+    expect(await screen.findByText(/文字区已有内容/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "替换" }));
+    expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(
+      "请确认负责人同更新时间",
+    );
+  });
+
+  it("keeps an over-limit transcript intact and blocks it with a visible correction message", async () => {
+    const longTranscript = "粤".repeat(161);
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      uploadSupported: true,
+    });
+    speechMocks.transcribeAudio.mockResolvedValue({
+      transcript: longTranscript,
+      detectedLanguage: "yue-HK",
+      durationMs: 1200,
+      transcriptionSource: "hkchat-speech",
+      warnings: [],
+    });
+    const view = renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "上传录音" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    fireEvent.change(view.container.querySelector('input[type="file"]'), {
+      target: {
+        files: [new File(["RIFFaudio"], "voice.wav", { type: "audio/wav" })],
+      },
+    });
+
+    expect(await screen.findByText(/转写超过 160 字/)).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(longTranscript);
+  });
+
+  it("retries a failed transcription from the retained local recording", async () => {
+    const retained = [];
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      uploadSupported: true,
+    });
+    storeMocks.saveAudioAsset.mockImplementation(async (asset) => {
+      retained.splice(0, retained.length, asset);
+      return asset;
+    });
+    storeMocks.listAudioAssets.mockImplementation(async () => [...retained]);
+    speechMocks.transcribeAudio
+      .mockRejectedValueOnce(new Error("港话通暂时不可用"))
+      .mockResolvedValueOnce({
+        transcript: "重试后成功转写",
+        detectedLanguage: "yue-HK",
+        durationMs: 1200,
+        transcriptionSource: "hkchat-speech",
+        warnings: [],
+      });
+    const view = renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "上传录音" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    fireEvent.change(view.container.querySelector('input[type="file"]'), {
+      target: {
+        files: [new File(["RIFFaudio"], "retry.wav", { type: "audio/wav" })],
+      },
+    });
+
+    expect(await screen.findByText("港话通暂时不可用")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /本机录音 \(1\)/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "转写" }));
+
+    expect(await screen.findByDisplayValue("重试后成功转写")).toBeTruthy();
+    expect(speechMocks.transcribeAudio).toHaveBeenCalledTimes(2);
   });
 
   it("keeps a quota-failed recording in memory with an immediate download", async () => {
