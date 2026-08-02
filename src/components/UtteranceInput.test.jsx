@@ -349,6 +349,51 @@ describe("UtteranceInput recording lifecycle", () => {
     expect(speechMocks.transcribeAudio).toHaveBeenCalledTimes(2);
   });
 
+  it("clears a stale transcript preview before a new transcription attempt", async () => {
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      uploadSupported: true,
+    });
+    speechMocks.transcribeAudio
+      .mockResolvedValueOnce({
+        transcript: "第一段转写",
+        detectedLanguage: "yue-HK",
+        durationMs: 1200,
+        transcriptionSource: "hkchat-speech",
+        warnings: [],
+      })
+      .mockRejectedValueOnce(new Error("第二段没有可识别语音"));
+    const view = renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "上传录音" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    const fileInput = view.container.querySelector('input[type="file"]');
+    fireEvent.change(fileInput, {
+      target: {
+        files: [new File(["RIFFaudio"], "first.wav", { type: "audio/wav" })],
+      },
+    });
+    expect(await screen.findByDisplayValue("第一段转写")).toBeTruthy();
+    expect(view.container.querySelector(".voice-live strong")?.textContent).toBe(
+      "第一段转写",
+    );
+
+    fireEvent.change(fileInput, {
+      target: {
+        files: [new File(["RIFFaudio"], "silent.wav", { type: "audio/wav" })],
+      },
+    });
+
+    expect(await screen.findByText("第二段没有可识别语音")).toBeTruthy();
+    expect(view.container.querySelector(".voice-live")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(
+      "第一段转写",
+    );
+  });
+
   it("keeps a quota-failed recording in memory with an immediate download", async () => {
     storeMocks.saveAudioAsset.mockRejectedValueOnce(new Error("QuotaExceededError"));
     Object.defineProperty(navigator, "mediaDevices", {
@@ -372,5 +417,31 @@ describe("UtteranceInput recording lifecycle", () => {
       "blob:voice-test",
     );
     expect(screen.getByRole("textbox", { name: "你的回应" }).readOnly).toBe(false);
+  });
+
+  it("distinguishes an unavailable recording store from exhausted quota", async () => {
+    storeMocks.saveAudioAsset.mockRejectedValueOnce(
+      Object.assign(new Error("Blob storage is unavailable"), { name: "UnknownError" }),
+    );
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      uploadSupported: true,
+    });
+    speechMocks.transcribeAudio.mockRejectedValueOnce(new Error("没有可识别语音"));
+    const view = renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "上传录音" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    fireEvent.change(view.container.querySelector('input[type="file"]'), {
+      target: {
+        files: [new File(["RIFFaudio"], "voice.wav", { type: "audio/wav" })],
+      },
+    });
+
+    expect(await screen.findByText(/本机录音库暂时不可用/)).toBeTruthy();
+    expect(screen.getByRole("region", { name: "尚未保存的内存录音" })).toBeTruthy();
   });
 });

@@ -74,6 +74,14 @@ function extensionFor(mimeType) {
   return "webm";
 }
 
+function recordingStoreWarning(storageError) {
+  const diagnostic = `${storageError?.name || ""} ${storageError?.message || ""}`.toLowerCase();
+  if (diagnostic.includes("quota")) {
+    return "本机录音空间不足；本次音频仍可转写，请立即下载保存。";
+  }
+  return "本机录音库暂时不可用；本次音频仍可转写，请立即下载保存。";
+}
+
 function RecordingRow({ asset, onTranscribe, onDelete }) {
   const url = useMemo(() => URL.createObjectURL(asset.blob), [asset.blob]);
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
@@ -239,14 +247,17 @@ export function UtteranceInput({
     try {
       await saveAudioAsset(asset);
       await refreshLibrary();
-    } catch {
+    } catch (storageError) {
       setVolatileAsset(asset);
-      setWarning("本机录音空间不足；本次音频仍可转写，请立即下载保存。");
+      setWarning(recordingStoreWarning(storageError));
     }
     return asset;
   }
 
   async function requestTranscription(asset) {
+    setTranscriptPreview("");
+    setPendingTranscript("");
+    setInterim("");
     if (!capabilities.uploadSupported) {
       setError("港话通文件转写尚未配置；录音已保留，可下载或继续键盘输入。");
       return;

@@ -61,11 +61,16 @@
 - 文件识别可凭 Speech API Key 开启；实时字幕继续如实关闭，不使用 TTS
   WebSocket，也不以整段轮询伪装实时。任意 WS URL 不会自动启用生产流式
   能力，必须显式注入已经实现并验证上游契约的 live Adapter。
+- 供应商成功响应中的空值、空白或非字符串结果一律映射为可恢复的
+  `upstream_unavailable`，禁止把 JSON `null` 字符串化为用户转写。新一次
+  转写开始时只清除旧预览/待合并状态，不清除用户已确认文字。
+- IndexedDB 写入失败时保留当前内存 Blob 和下载入口；只有配额错误提示空间
+  不足，其他浏览器存储错误准确提示“本机录音库暂时不可用”。
 
 ## 验证基线
 
-- 前端：53 项测试通过；ESLint 与 Vite production build 通过。
-- 后端：隔离 `.venv` 中 61 项测试通过。
+- 前端：55 项测试通过；ESLint 与 Vite production build 通过。
+- 后端：隔离 `.venv` 中 67 项测试通过。
 - Playwright 已在 1440×1024 与 390×844 确认主线、训练回应、自定义描述和
   自定义逐轮回应的语音控制；训练库搜索框无语音按钮。
 - 两种视口均无横向溢出，浏览器控制台 0 错误；首次上传隐私说明和不支持
@@ -87,6 +92,9 @@
 - `docs/hkchat-live-asr-contract-request.md` 汇总了向主办方索取流式 ASR 时必需的
   连接、鉴权、帧格式、事件、错误、隐私与验收问题；取得正式答复后再实现
   production live Adapter。
+- Microsoft Edge 与 Playwright WebKit 已完成 1440×1024、390×844 兼容性
+  复验；WebKit 同源引擎检查通过上传/降级与搜索框隔离，真实 Safari/iOS
+  硬件验收仍待执行。
 
 ## 关键入口
 

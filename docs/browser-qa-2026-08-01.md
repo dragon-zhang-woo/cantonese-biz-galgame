@@ -4,7 +4,9 @@
 
 语音状态复验：2026-08-02
 
-浏览器：Playwright Chromium
+浏览器：Playwright Chromium、Microsoft Edge、Playwright WebKit；另以用户
+Chrome 会话复验真实文件识别。WebKit 是 Safari 同源引擎等价检查，不替代
+真实 iPhone/iPad 硬件验收。
 
 本地服务：Vite `127.0.0.1:5173`、FastAPI `127.0.0.1:8000`；训练回合模型设为 mock，验证独立降级路径。
 
@@ -45,8 +47,8 @@ Bearer + JSON/Base64 文件识别契约；实时 ASR 仍无 WebSocket 契约，�
 
 ## 自动化回归
 
-- 前端：53 项 Vitest 测试通过。
-- 后端：隔离 `.venv` 中 61 项 Pytest 测试通过。
+- 前端：55 项 Vitest 测试通过。
+- 后端：隔离 `.venv` 中 67 项 Pytest 测试通过。
 - ESLint 与 Vite production build 通过。
 - 当前 Windows 验收机没有安装 Docker CLI，`docker compose build` 未运行；
   PR CI 已在 Ubuntu runner 成功构建 Web/API 两个独立 Docker 镜像。
@@ -93,3 +95,25 @@ Bearer + JSON/Base64 文件识别契约；实时 ASR 仍无 WebSocket 契约，�
   和训练页均无阻断控件。
 - 桌面与手机复验控制台均为 0 error / 0 warning；浏览器 `localStorage` 不含
   测试转写或匿名情境文本。
+
+## Edge 与 WebKit 兼容性复验
+
+复验日期：2026-08-02。
+
+- Microsoft Edge 在 1440×1024 与 390×844 均无横向溢出；`MediaRecorder`
+  可用，自定义描述区同时显示“语音输入、上传录音、本机录音”三个动作，手机
+  端动作保持两列布局，控制台 0 error / 0 warning。
+- Playwright WebKit 在相同两种视口均无横向溢出；该 Windows WebKit 运行时
+  不提供 `MediaRecorder`，产品按设计隐藏录音启动动作，同时保留上传、本机
+  录音抽屉和键盘输入。
+- WebKit 训练库只有一个搜索框，搜索层内没有语音按钮；当前训练回应区仍有
+  独立 `UtteranceInput`。自定义描述上传入口先展示隐私说明。
+- 使用 1 秒静音 WAV 验证供应商空识别结果：后端返回稳定、可恢复的
+  `upstream_unavailable`，界面保留内存录音、重新转写和下载入口，不再把
+  JSON `null` 显示为字符串 `None`，已确认文字不会被清空。
+- Playwright WebKit for Windows 对 IndexedDB Blob 写入返回 `UnknownError:
+  Error preparing Blob/File data to be stored in object store`；产品准确显示“本机
+  录音库暂时不可用”并进入内存降级。此为该测试运行时限制，真实 Safari/iOS
+  的 IndexedDB Blob 持久化仍需在硬件上完成最终验收。
+- 静音 WAV 的预期 502 负向请求会在 WebKit 控制台产生一条资源错误；正常
+  页面与 Edge 正向路径无 JavaScript 错误或警告。

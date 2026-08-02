@@ -352,6 +352,31 @@ async def test_hkchat_file_adapter_maps_provider_json_failures(
     assert failure.value.code == expected_code
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider_result", [None, "", "   ", 0, False, {}])
+async def test_hkchat_file_adapter_rejects_empty_or_non_text_transcripts(
+    provider_result: object,
+) -> None:
+    adapter = HKChatSpeechAdapter(
+        Settings(hkchat_speech_api_key="test-key"),
+        http_transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={
+                    "code": 200,
+                    "msg": "SUCCESS",
+                    "data": {"result": provider_result},
+                },
+            )
+        ),
+    )
+
+    with pytest.raises(SpeechModuleError) as failure:
+        await adapter.transcribe_file(_wav_bytes(), language_hint="auto")
+    assert failure.value.code == "upstream_unavailable"
+    assert failure.value.recoverable is True
+
+
 def test_live_websocket_relays_ordered_hkchat_transcript_events() -> None:
     class LiveAdapter:
         async def transcribe_file(self, audio: bytes, *, language_hint: str):

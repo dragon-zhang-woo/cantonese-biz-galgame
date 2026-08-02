@@ -146,9 +146,12 @@ class HKChatSpeechAdapter:
                     True,
                 )
             result = payload.get("data")
-            transcript = str(
-                result.get("result") if isinstance(result, dict) else ""
-            ).strip()
+            raw_transcript = (
+                result.get("result") if isinstance(result, dict) else None
+            )
+            transcript = (
+                raw_transcript.strip() if isinstance(raw_transcript, str) else ""
+            )
             if not transcript:
                 raise ValueError("empty transcript")
             return SpeechAdapterResult(
