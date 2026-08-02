@@ -117,7 +117,11 @@ beforeEach(() => {
   };
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  delete window.SpeechRecognition;
+  delete window.webkitSpeechRecognition;
+});
 
 describe("UtteranceInput recording lifecycle", () => {
   it("keeps keyboard and upload available when microphone permission is denied", async () => {
@@ -496,5 +500,117 @@ describe("UtteranceInput recording lifecycle", () => {
       "请确认负责人",
     );
     expect(speechMocks.transcribeAudio).not.toHaveBeenCalled();
+  });
+
+  it("shows browser Cantonese interim text and keeps the final transcript without file ASR", async () => {
+    const recognitionInstances = [];
+    class FakeBrowserRecognition {
+      constructor() {
+        recognitionInstances.push(this);
+      }
+
+      start() {
+        this.started = true;
+      }
+
+      stop() {
+        this.stopped = true;
+      }
+
+      abort() {
+        this.aborted = true;
+      }
+    }
+    window.webkitSpeechRecognition = FakeBrowserRecognition;
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      liveSupported: false,
+      uploadSupported: true,
+    });
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "语音输入" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    await waitFor(() => expect(recognitionInstances).toHaveLength(1));
+    const recognition = recognitionInstances[0];
+    const interimResult = Object.assign([{ transcript: "我想确认负责人" }], {
+      isFinal: false,
+    });
+    recognition.onresult({ resultIndex: 0, results: [interimResult] });
+
+    expect(await screen.findByText("我想确认负责人")).toBeTruthy();
+    expect(screen.getByText(/浏览器实时转写 · 实验性/)).toBeTruthy();
+
+    const finalResult = Object.assign(
+      [{ transcript: "我想确认负责人同更新时间" }],
+      { isFinal: true },
+    );
+    recognition.onresult({ resultIndex: 0, results: [finalResult] });
+    fireEvent.click(screen.getByRole("button", { name: /停止 0s/ }));
+    recognition.onend();
+
+    expect(await screen.findByDisplayValue("我想确认负责人同更新时间")).toBeTruthy();
+    await new Promise((resolve) => window.setTimeout(resolve, 1600));
+    expect(speechMocks.transcribeAudio).not.toHaveBeenCalled();
+    expect(screen.queryByText(/文字区已有内容/)).toBeNull();
+  });
+
+  it("falls back to HKChat file transcription when browser live recognition fails", async () => {
+    const recognitionInstances = [];
+    class FailingBrowserRecognition {
+      constructor() {
+        recognitionInstances.push(this);
+      }
+
+      start() {}
+      stop() {}
+      abort() {}
+    }
+    window.webkitSpeechRecognition = FailingBrowserRecognition;
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      liveSupported: false,
+      uploadSupported: true,
+    });
+    speechMocks.transcribeAudio.mockResolvedValue({
+      transcript: "港話通完成整段校準",
+      transcriptionSource: "hkchat-speech",
+    });
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "语音输入" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    await waitFor(() => expect(recognitionInstances).toHaveLength(1));
+
+    recognitionInstances[0].onerror({ error: "network" });
+    recognitionInstances[0].onend();
+    expect(await screen.findByText(/浏览器实时识别中断/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /停止 0s/ }));
+    await waitFor(() => expect(speechMocks.transcribeAudio).toHaveBeenCalledTimes(1));
+    expect(await screen.findByDisplayValue("港話通完成整段校準")).toBeTruthy();
+    expect(screen.getByText(/港话通语音转写/)).toBeTruthy();
   });
 });

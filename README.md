@@ -39,6 +39,7 @@
 ```text
 玩家选择或自由作答
         │
+        ├── 浏览器 SpeechRecognition：桌面 Chrome/Edge 实验性实时粤语字幕
         ├── 港话通 Speech：用官方 HTTP 识别把录音转成可编辑文字
         ├── DeepSeek：在人物、利益与当前关系约束下生成 NPC 反应
         ├── 港话通：独立检查自然度、礼貌度、商务适配并给出港式改写
@@ -54,7 +55,8 @@ AI 负责难以穷举的角色表演和语境解释；程序始终掌握故事�
 - **关系后果可见**：追踪信任、专业度、粤语自然度与文化适配，并用人物反应和
   剧情证据解释变化；
 - **自由表达**：主线、12 项训练和自定义情境均支持键盘、麦克风录音与
-  录音上传；官方文件识别完成后可编辑，确认后才提交双模型；
+  录音上传；桌面 Chrome/Edge 可显示实验性实时字幕，停录后可由港话通
+  整段转写兜底，文字确认后才提交双模型；
 - **任务导向复盘**：按目标清晰、具体性、主人翁意识、关系维护、风险透明和
   下一步六个维度评分，并提供可复用句式；
 - **来源可追溯**：训练技能与香港劳工处、平机会、私隐专员公署和廉政公署等
@@ -80,7 +82,7 @@ AI 负责难以穷举的角色表演和语境解释；程序始终掌握故事�
 React 19 + Vite 6
 ├── 五幕主线与 12 项训练任务（确定性本地数据）
 ├── 自定义情境（浏览器脱敏、进度与行为量表）
-├── UtteranceInput（录音、上传、可编辑转写与 IndexedDB）
+├── UtteranceInput（浏览器实时字幕、录音、上传、可编辑转写与 IndexedDB）
 └── FastAPI
     ├── POST /api/game/turn
     │   ├── DeepSeek Provider
@@ -140,10 +142,13 @@ cp .env.example .env
 已确认文件识别使用 Bearer 鉴权，并以 JSON/Base64 调用
 `/server_proxy/api/v1/speech_recognize`；填写 `HKCHAT_SPEECH_API_KEY` 即可启用
 上传与停止后转写。Studio 当前只公布 TTS WebSocket，没有实时 ASR 契约，
-因此 `HKCHAT_SPEECH_WS_URL` 默认留空，实时字幕能力如实关闭，绝不以轮询整段
-录音伪装流式识别；单独填写任意 WebSocket URL 也不会开启能力，必须先实现并
-显式注入经过契约验证的实时 Adapter。没有语音配置时，录音仍可保存在本机并
-下载，键盘和离线训练完全不受影响。
+因此 `HKCHAT_SPEECH_WS_URL` 默认留空，服务端能力中的 `live_supported=false`
+只表示港话通流式识别未开启，绝不以轮询整段录音伪装流式识别。桌面版会在
+Chrome/Edge 支持时使用浏览器 Web Speech API 提供实验性实时粤语字幕；这条
+客户端路径不需要项目 API Key，但浏览器可能把语音发送到其云端识别服务，
+产品会在首次使用前明确告知。识别失败时，完整录音仍保留并自动尝试一次
+港话通整段转写。没有任何语音能力时，录音仍可在本机下载，键盘和离线训练
+完全不受影响。
 
 如需向主办方申请实时 ASR 契约，可直接使用
 [`docs/hkchat-live-asr-contract-request.md`](docs/hkchat-live-asr-contract-request.md)

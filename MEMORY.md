@@ -7,7 +7,7 @@
 - 代码库：`D:\火鸟黑客松竞赛\粤商通 Galgame`
 - 稳定基线：`develop` 的 `f34a7e1`；PR #17 已合并。
 - 当前开发分支：`feature/voice-input-v1`。
-- PR #18 已合并；官方 Speech 契约增量位于草稿
+- PR #18 已合并；语音输入增量位于草稿
   [PR #19](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pull/19)，
   目标分支 `develop`，当前可合并且 CI 通过。
 - 项目是 2026 火鸟 AI 黑客松开放赛道作品：以香港职场关系后果驱动的
@@ -58,12 +58,15 @@
   `free`，旧 `custom-response` 与 `custom-round-*` 仍兼容。
 - 港话通 Speech 转写来源与 DeepSeek 角色反应、港话通文本复盘来源分开显示；
   用户确认可编辑文字后才进入原有双模型回合。
+- 桌面 Chrome/Edge 支持浏览器 Web Speech 实验性实时字幕，来源固定为
+  `browser-speech`；优先请求 `yue-Hant-HK`，不支持时切换 `zh-HK`。实时
+  interim 只显示在预览，final 合并完成后才进入可编辑字段。
 - HKGAI Studio 已确认文件识别为 Bearer 鉴权的
   `POST /server_proxy/api/v1/speech_recognize`，请求使用 JSON/Base64，结果位于
   `data.result`；当前只公布 TTS WebSocket，没有实时 ASR 契约。
-- 文件识别可凭 Speech API Key 开启；实时字幕继续如实关闭，不使用 TTS
-  WebSocket，也不以整段轮询伪装实时。任意 WS URL 不会自动启用生产流式
-  能力，必须显式注入已经实现并验证上游契约的 live Adapter。
+- 文件识别可凭 Speech API Key 开启；港话通服务端实时能力继续如实关闭，
+  不使用 TTS WebSocket，也不以整段轮询伪装实时。浏览器客户端实时能力不改写
+  后端 `live_supported`，失败后自动尝试一次港话通文件转写。
 - 供应商成功响应中的空值、空白或非字符串结果一律映射为可恢复的
   `upstream_unavailable`，禁止把 JSON `null` 字符串化为用户转写。新一次
   转写开始时只清除旧预览/待合并状态，不清除用户已确认文字。
@@ -77,7 +80,7 @@
 
 ## 验证基线
 
-- 前端：58 项测试通过；ESLint 与 Vite production build 通过。
+- 前端：63 项测试通过；ESLint 与 Vite production build 通过。
 - 后端：隔离 `.venv` 中 68 项测试通过。
 - Playwright 已在 1440×1024 与 390×844 确认主线、训练回应、自定义描述和
   自定义逐轮回应的语音控制；训练库搜索框无语音按钮。
@@ -85,15 +88,15 @@
   文件的错误恢复已验证。
 - 本机未安装 Docker CLI；PR CI 已成功构建 Web/API Docker 镜像。真实港话通
   文件识别已用 2.64 秒无敏感粤语短句通过端到端验收，返回来源
-  `hkchat-speech` 且无警告；实时 ASR 仍等待主办方契约。
+  `hkchat-speech` 且无警告；港话通服务端实时 ASR 仍等待主办方契约。
 - 审计新增真实六类容器解码、流式 sequence 去重/合并、PCM 时长限制、取消、
   上游错误映射、录音组件权限/启停和配额失败内存下载覆盖。
 - 麦克风权限被拒后会隐藏录音启动能力；快速停止会关闭尚在连接的实时
   Socket，录音器初始化失败会释放媒体轨道。组件测试新增追加/替换、超长
   保留和本机录音失败重试；文件测试新增字段时长上限与失败请求资源关闭。
 - PR #18 已合并；后续草稿 PR #19 的前端、后端及两个 Docker 镜像构建均
-  通过。官方文件识别已完成真实验收，实时 ASR 则等待主办方提供独立
-  WebSocket 契约。
+  通过。官方文件识别已完成真实验收；客户端浏览器实时字幕已补充实现，
+  港话通服务端实时 ASR 仍等待主办方提供独立 WebSocket 契约。
 - HKGAI Studio Speech 专用前端脚本只实现 TTS、整文件识别和会议转写：识别
   路径先用 `FileReader` 读取完整文件再提交 JSON/Base64；专用脚本和已加载资源
   均无实时 ASR / WebSocket 调用。生产代码已移除猜测式上游 WebSocket Relay。
@@ -106,6 +109,10 @@
 - 提交前范围改为桌面优先；新版五段评委演示已在 1920×1080 与
   1440×1024 完整跑通，无横向溢出、控制台 0 错误，演示前后
   localStorage/sessionStorage 均为空，退出后仍保持第一幕进度。
+- 浏览器实时字幕已在真实 Chrome/Edge 确认接口存在且页面为安全上下文；两种
+  桌面视口无横向溢出、控制台 0 error/0 warning。自动化覆盖 interim/final、
+  粤语语言切换、幂等采用及网络错误后的港话通文件回退；录制前仍需用无敏感
+  短句做一次真实麦克风准确率校准。
 - 9 页路演 PPTX 已生成并逐页渲染检查，`slides_test.py` 报告无溢出；
   三分钟横版视频镜头单已改为直接跟随五段评委演示录制。
 
@@ -117,6 +124,7 @@
 - 统一语音输入：`src/components/UtteranceInput.jsx`
 - 本机录音存储：`src/services/recordingStore.js`
 - 语音 API 客户端：`src/services/speechApi.js`
+- 浏览器实时字幕 Adapter：`src/services/browserSpeechRecognition.js`
 - 后端语音模块：`backend/app/services/speech.py`
 - 浏览器离线编排：`src/services/customScenario.js`
 - 共享推断：`src/services/scenarioInference.js`、`shared/scenario-inference.json`
@@ -129,7 +137,8 @@
 - 不改变五幕故事图、选项评分或 `nextSceneId`。
 - AI 是增强能力，标准主线、训练路径和评委导览必须可离线运行。
 - 原始现实描述、自由回答、密钥、个人资料或公司机密不得写入训练存档。
-- 音频只允许进入专用本机 IndexedDB 和港话通 Speech 转写链路；不交给
-  DeepSeek 或港话通文本模型，不建立后端音频库或跨设备同步。
+- 音频只允许进入专用本机 IndexedDB、浏览器厂商 SpeechRecognition 和港话通
+  Speech 转写链路；不交给 DeepSeek 或港话通文本模型，不建立后端音频库或
+  跨设备同步。
 - 所有新视觉必须原创、从批准角色锚点出发，并同时更新素材来源和 26 字段台账。
 - `develop` 是集成分支，`main` 是稳定发布分支；功能 PR 先进入 `develop`。
