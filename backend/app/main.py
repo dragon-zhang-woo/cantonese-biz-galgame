@@ -80,8 +80,10 @@ def create_app(
         language_hint: str = Form("auto"),
     ) -> SpeechTranscriptionResponse:
         client_key = request.client.host if request.client else "unknown"
+        acquired = False
         try:
             await speech.acquire(client_key)
+            acquired = True
             data = await audio.read(25 * 1024 * 1024 + 1)
             return await speech.transcribe_file(
                 data,
@@ -99,7 +101,8 @@ def create_app(
                 },
             ) from exc
         finally:
-            await speech.release(client_key)
+            if acquired:
+                await speech.release(client_key)
             await audio.close()
 
     @app.websocket("/api/speech/transcriptions/live")

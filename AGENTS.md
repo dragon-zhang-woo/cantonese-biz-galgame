@@ -43,12 +43,15 @@ When implementing from a selected generated mock, treat that image as the source
 - Adaptive custom-scene art uses the approved six-scene batch recorded in `GPT_IMAGE_2_CUSTOM_SCENE_PROMPTS.md`; keep relationship, speaker and background identity aligned.
 - Browser and backend custom-scenario inference must use the shared JSON rules and conformance fixtures; explicit learner choices outrank inferred relation, channel and focus.
 - Keep composition provenance separate from per-turn model provenance. Low-confidence inferred fields must remain visibly correctable before training starts.
-- The judge showcase is a read-only Act 1/4/5 presentation surface: it must never call a model, mutate campaign state, write session storage or alter the canonical story graph.
+- The judge showcase is a read-only three-minute recording surface covering the five-act mainline, the 12-task practice library, an editable prewritten custom-scenario input, the Act 4 consequence comparison and the learning review. It must never call a model, mutate campaign state, write session storage or alter the canonical story graph.
+- Competition submission is desktop-first: validate Chrome/Edge at 1920×1080 and 1440×1024 before the 2026-08-03 cutoff. Mobile refinement is post-submission work; keyboard input and deterministic offline paths remain the recorded-demo baseline.
 - All authored-training free-input surfaces share `UtteranceInput`: campaign/practice turns, custom-scenario intake and custom rounds. The practice-library search box stays text-only.
 - Speech audio is retained only in the dedicated browser IndexedDB, capped at the newest 20 assets and 30 days. Never put audio, transcripts, original filenames or model results in campaign/training storage, `localStorage` or `TurnCache`.
-- HKChat Speech produces editable transcripts; only explicit learner submission sends text through the existing DeepSeek NPC + HKChat text-review turn. Keep all three provenance labels separate.
-- Custom-scenario audio must disclose that it reaches HKChat Speech before browser text redaction. Keyboard input and deterministic offline training remain available whenever microphone, HTTPS, permissions or the speech provider are unavailable.
-- Do not infer the HKChat Speech protocol from a public base host. Enable upload or live capabilities only with explicit organiser-supplied endpoint and authentication contracts; never emulate live transcription by polling complete-file uploads.
+- Browser SpeechRecognition may provide experimental desktop live captions with provenance `browser-speech`; HKChat Speech file recognition remains `hkchat-speech`. Only explicit learner submission sends editable text through the existing DeepSeek NPC + HKChat text-review turn. Keep all speech and model provenance labels separate.
+- Custom-scenario audio must disclose that browser-vendor recognition and/or HKChat Speech can receive audio before browser text redaction. Keyboard input and deterministic offline training remain available whenever microphone, HTTPS, permissions or either speech path is unavailable.
+- HKGAI Studio documents Speech recognition as Bearer-authenticated JSON/Base64 `POST /server_proxy/api/v1/speech_recognize`, returning `data.result`; use that exact contract for file transcription.
+- Studio currently documents a WebSocket only for TTS, not ASR. Keep HKChat server-side live transcription disabled until the organiser supplies an explicit streaming-recognition contract; never point live ASR at the TTS socket or emulate streaming by polling complete-file uploads. This does not prohibit the separately labelled browser Web Speech client fallback.
+- A configured WebSocket URL alone is not proof of a live-ASR contract. Production capabilities may expose live transcription only through an explicitly implemented and injected verified live adapter.
 
 ## Durable Repository Workflow
 

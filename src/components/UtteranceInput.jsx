@@ -17,6 +17,10 @@ import {
   saveAudioAsset,
 } from "../services/recordingStore.js";
 import {
+  browserSpeechRecognitionSupported,
+  createBrowserSpeechRecognition,
+} from "../services/browserSpeechRecognition.js";
+import {
   createLiveSpeechSocket,
   DEFAULT_SPEECH_CAPABILITIES,
   getSpeechCapabilities,
@@ -74,6 +78,24 @@ function extensionFor(mimeType) {
   return "webm";
 }
 
+function recordingStoreWarning(storageError) {
+  const diagnostic = `${storageError?.name || ""} ${storageError?.message || ""}`.toLowerCase();
+  if (diagnostic.includes("quota")) {
+    return "本机录音空间不足；本次音频仍可转写，请立即下载保存。";
+  }
+  return "本机录音库暂时不可用；本次音频仍可转写，请立即下载保存。";
+}
+
+function browserSpeechErrorMessage(code) {
+  if (["not-allowed", "service-not-allowed"].includes(code)) {
+    return "浏览器实时识别权限不可用；录音仍保留，停止后会尝试港话通转写。";
+  }
+  if (code === "audio-capture") {
+    return "浏览器实时识别无法读取麦克风；录音仍保留，停止后会尝试港话通转写。";
+  }
+  return "浏览器实时识别中断；录音仍保留，停止后会尝试港话通转写。";
+}
+
 function RecordingRow({ asset, onTranscribe, onDelete }) {
   const url = useMemo(() => URL.createObjectURL(asset.blob), [asset.blob]);
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
@@ -126,19 +148,24 @@ export function UtteranceInput({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [microphoneDenied, setMicrophoneDenied] = useState(false);
+  const [liveSource, setLiveSource] = useState("");
   const pendingAction = useRef(null);
   const fileInput = useRef(null);
   const mediaRecorder = useRef(null);
   const mediaStream = useRef(null);
   const recordingChunks = useRef([]);
   const liveSocket = useRef(null);
+  const browserRecognizer = useRef(null);
+  const liveMode = useRef(null);
   const audioContext = useRef(null);
   const audioNode = useRef(null);
   const recordingTimer = useRef(null);
+  const postStopTimer = useRef(null);
   const recordingStartedAt = useRef(0);
   const finalTranscript = useRef("");
   const transcriptAccumulator = useRef(createTranscriptAccumulator());
   const liveComplete = useRef(false);
+  const liveTranscriptAdopted = useRef(false);
   const valueRef = useRef(value);
 
   valueRef.current = value;
@@ -179,7 +206,9 @@ export function UtteranceInput({
   useEffect(
     () => () => {
       window.clearInterval(recordingTimer.current);
+      window.clearTimeout(postStopTimer.current);
       liveSocket.current?.close();
+      browserRecognizer.current?.abort();
       audioNode.current?.disconnect();
       audioContext.current?.close();
       mediaStream.current?.getTracks().forEach((track) => track.stop());
@@ -239,14 +268,17 @@ export function UtteranceInput({
     try {
       await saveAudioAsset(asset);
       await refreshLibrary();
-    } catch {
+    } catch (storageError) {
       setVolatileAsset(asset);
-      setWarning("本机录音空间不足；本次音频仍可转写，请立即下载保存。");
+      setWarning(recordingStoreWarning(storageError));
     }
     return asset;
   }
 
   async function requestTranscription(asset) {
+    setTranscriptPreview("");
+    setPendingTranscript("");
+    setInterim("");
     if (!capabilities.uploadSupported) {
       setError("港话通文件转写尚未配置；录音已保留，可下载或继续键盘输入。");
       return;
@@ -255,6 +287,7 @@ export function UtteranceInput({
     setError("");
     try {
       const result = await transcribeAudio(asset.blob, scope);
+      setLiveSource("hkchat-speech");
       offerTranscript(result.transcript);
       setPhase("ready");
     } catch (transcriptionError) {
@@ -275,9 +308,18 @@ export function UtteranceInput({
       return;
     }
     setPhase("saving");
-    const anonymousBlob = file.type === mimeType ? file : new Blob([file], { type: mimeType });
+    // Always strip the File wrapper before persistence. A File is also a Blob, but
+    // structured-cloning it into IndexedDB would retain its original filename.
+    const anonymousBlob = new Blob([file], { type: mimeType });
     const asset = await persistAsset(anonymousBlob, "uploaded");
     await requestTranscription(asset);
+  }
+
+  function adoptLiveTranscript() {
+    if (liveTranscriptAdopted.current || !finalTranscript.current.trim()) return;
+    liveTranscriptAdopted.current = true;
+    offerTranscript(finalTranscript.current);
+    setPhase("ready");
   }
 
   async function connectLiveTranscription(stream) {
@@ -302,8 +344,54 @@ export function UtteranceInput({
     } catch {
       setWarning("音量反馈初始化失败；录音仍会正常保留。");
     }
-    if (!capabilities.liveSupported) return;
+    if (!capabilities.liveSupported) {
+      if (!browserSpeechRecognitionSupported(window)) {
+        liveMode.current = null;
+        setLiveSource("");
+        return;
+      }
+      try {
+        const recognizer = createBrowserSpeechRecognition({
+          target: window,
+          onInterim: ({ text }) => setInterim(text),
+          onFinal: ({ transcript }) => {
+            finalTranscript.current = transcript;
+            setTranscriptPreview(transcript);
+          },
+          onComplete: ({ transcript }) => {
+            const normalized = transcript.trim();
+            liveComplete.current = Boolean(normalized);
+            finalTranscript.current = normalized;
+            if (normalized && mediaRecorder.current?.state !== "recording") {
+              adoptLiveTranscript();
+            }
+          },
+          onError: ({ code }) => {
+            liveComplete.current = false;
+            liveMode.current = null;
+            setWarning(browserSpeechErrorMessage(code));
+          },
+          onLanguageFallback: ({ language }) => {
+            setWarning(
+              language === "zh-HK"
+                ? "浏览器已切换至香港粤语识别模式。"
+                : "浏览器已切换备用粤语识别模式。",
+            );
+          },
+        });
+        browserRecognizer.current = recognizer;
+        liveMode.current = "browser-speech";
+        setLiveSource("browser-speech");
+        recognizer.start();
+      } catch {
+        liveMode.current = null;
+        setWarning("浏览器实时识别无法启动；录音仍保留，停止后会尝试港话通转写。");
+      }
+      return;
+    }
     try {
+      liveMode.current = "hkchat-speech";
+      setLiveSource("hkchat-speech");
       socket = createLiveSpeechSocket();
       liveSocket.current = socket;
       socket.onopen = () => {
@@ -330,20 +418,22 @@ export function UtteranceInput({
         if (accepted?.type === "complete") {
           liveComplete.current = true;
           finalTranscript.current = accepted.transcript;
-          offerTranscript(finalTranscript.current);
-          setPhase("ready");
+          if (mediaRecorder.current?.state !== "recording") adoptLiveTranscript();
           socket.close();
         }
         if (event.type === "error") {
           liveComplete.current = false;
+          liveMode.current = null;
           setWarning(`${event.message || "实时字幕中断"}；停止后会尝试文件转写。`);
         }
       };
       socket.onerror = () => {
         liveComplete.current = false;
+        liveMode.current = null;
         setWarning("实时字幕连接失败；录音仍会保留并在停止后转写。");
       };
     } catch {
+      liveMode.current = null;
       setWarning("实时字幕连接失败；录音仍会保留并在停止后转写。");
     }
   }
@@ -354,9 +444,15 @@ export function UtteranceInput({
     setInterim("");
     setTranscriptPreview("");
     setPendingTranscript("");
+    window.clearTimeout(postStopTimer.current);
+    browserRecognizer.current?.abort();
+    browserRecognizer.current = null;
+    liveMode.current = null;
+    setLiveSource("");
     finalTranscript.current = "";
     transcriptAccumulator.current = createTranscriptAccumulator();
     liveComplete.current = false;
+    liveTranscriptAdopted.current = false;
     setAudioLevel(0);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -374,20 +470,19 @@ export function UtteranceInput({
         });
         const durationMs = Date.now() - recordingStartedAt.current;
         const asset = await persistAsset(blob, "recorded", durationMs);
-        window.setTimeout(() => {
+        postStopTimer.current = window.setTimeout(() => {
           if (
             recordingCompletionAction({
               liveComplete: liveComplete.current,
               transcript: finalTranscript.current,
             }) === "adopt-live"
           ) {
-            offerTranscript(finalTranscript.current);
-            setPhase("ready");
+            adoptLiveTranscript();
           } else {
             liveSocket.current?.close();
             requestTranscription(asset);
           }
-        }, capabilities.liveSupported ? 1200 : 0);
+        }, liveMode.current ? 1500 : 0);
       };
       recorder.start(500);
       recordingStartedAt.current = Date.now();
@@ -402,12 +497,15 @@ export function UtteranceInput({
     } catch (permissionError) {
       window.clearInterval(recordingTimer.current);
       liveSocket.current?.close();
+      browserRecognizer.current?.abort();
       audioNode.current?.disconnect();
       audioContext.current?.close();
       mediaStream.current?.getTracks().forEach((track) => track.stop());
       mediaRecorder.current = null;
       mediaStream.current = null;
       liveSocket.current = null;
+      browserRecognizer.current = null;
+      liveMode.current = null;
       audioNode.current = null;
       audioContext.current = null;
       setPhase("error");
@@ -426,6 +524,7 @@ export function UtteranceInput({
     } else if (liveSocket.current?.readyState === WebSocket.CONNECTING) {
       liveSocket.current.close();
     }
+    browserRecognizer.current?.stop();
     audioNode.current?.disconnect();
     audioContext.current?.close();
     mediaStream.current?.getTracks().forEach((track) => track.stop());
@@ -494,12 +593,16 @@ export function UtteranceInput({
         <div className="voice-live" aria-live="polite">
           <span>
             <i /> {phase === "recording"
-              ? capabilities.liveSupported
+              ? liveSource === "browser-speech"
+                ? "浏览器实时转写 · 实验性"
+                : capabilities.liveSupported
                 ? "港话通实时转写"
                 : capabilities.uploadSupported
                   ? "正在录音 · 停止后尝试港话通转写"
                   : "正在录音 · 仅保存在本机"
-              : "港话通语音转写"}
+              : liveSource === "browser-speech"
+                ? "浏览器实时转写 · 可编辑"
+                : "港话通语音转写"}
           </span>
           {phase === "recording" && (
             <span className="voice-level" aria-label="麦克风音量">
@@ -545,7 +648,7 @@ export function UtteranceInput({
             <X weight="bold" />
           </button>
           <strong id={`${id}-voice-consent`}>录音与隐私说明</strong>
-          <p>音频会保存在此浏览器最多 30 天或最近 20 条，并发送至港话通进行转写；后端不长期保存。现实情境音频会在文字脱敏之前发送。</p>
+          <p>音频会保存在此浏览器最多 30 天或最近 20 条。录音期间，Chrome/Edge 可能把语音发送至浏览器厂商服务生成实验性实时字幕；停止后需要兜底时会发送至港话通转写。后端不长期保存。现实情境音频会在文字脱敏之前发送。</p>
           <button type="button" className="voice-consent__accept" onClick={acceptConsent}>
             <Check weight="bold" /> 我明白，继续
           </button>

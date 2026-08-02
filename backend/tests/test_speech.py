@@ -1,5 +1,8 @@
 from fastapi.testclient import TestClient
+import base64
 import io
+import json
+import uuid
 import wave
 
 import pytest
@@ -55,23 +58,81 @@ def test_speech_capabilities_are_honest_without_verified_contract() -> None:
     }
 
 
-def test_speech_capabilities_allow_verified_live_only_basic_contract() -> None:
+def test_speech_capabilities_enable_the_documented_file_contract_with_a_key() -> None:
+    payload = TestClient(
+        create_app(Settings(hkchat_speech_api_key="hkgai-test-key"))
+    ).get("/api/speech/capabilities").json()
+
+    assert payload["configured"] is True
+    assert payload["upload_supported"] is True
+    assert payload["live_supported"] is False
+
+
+def test_speech_capabilities_reject_the_documented_tts_websocket_for_live_asr() -> None:
     client = TestClient(
         create_app(
             Settings(
-                hkchat_speech_ws_url="wss://speech.example.test/live",
-                hkchat_speech_auth_mode="basic",
-                hkchat_speech_username="organiser-user",
-                hkchat_speech_password="organiser-password",
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="",
+                hkchat_speech_ws_url=(
+                    "wss://openspeech.hkgai.net/server_proxy/api/ws/tts"
+                ),
             )
         )
     )
 
     payload = client.get("/api/speech/capabilities").json()
 
+    assert payload["configured"] is False
+    assert payload["live_supported"] is False
+    assert payload["upload_supported"] is False
+
+
+def test_speech_capabilities_allow_an_explicitly_injected_live_adapter() -> None:
+    class VerifiedLiveAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError("file transcription is not configured")
+
+        async def stream(self, events):
+            yield {"type": "ready"}
+
+    payload = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="",
+                hkchat_speech_ws_url="wss://speech.example.test/live",
+            ),
+            speech_adapter=VerifiedLiveAdapter(),
+        )
+    ).get("/api/speech/capabilities").json()
+
     assert payload["configured"] is True
     assert payload["live_supported"] is True
     assert payload["upload_supported"] is False
+
+
+def test_live_websocket_refuses_the_tts_socket_without_a_verified_adapter() -> None:
+    client = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="",
+                hkchat_speech_ws_url=(
+                    "wss://openspeech.hkgai.net/server_proxy/api/ws/tts"
+                ),
+            )
+        )
+    )
+
+    try:
+        with client.websocket_connect(
+            "/api/speech/transcriptions/live",
+            headers={"origin": "http://localhost:5173"},
+        ):
+            raise AssertionError("unverified TTS socket enabled live ASR")
+    except Exception as error:
+        assert getattr(error, "code", None) == 1013
 
 
 def _wav_bytes(duration_ms: int = 250) -> bytes:
@@ -200,7 +261,7 @@ async def test_hkchat_file_adapter_maps_upstream_http_failures(
 
 
 @pytest.mark.asyncio
-async def test_hkchat_file_adapter_maps_timeout_and_supports_basic_auth() -> None:
+async def test_hkchat_file_adapter_maps_timeout_and_uses_official_json_contract() -> None:
     timeout_request = None
 
     def timeout_handler(request: httpx.Request) -> httpx.Response:
@@ -220,27 +281,100 @@ async def test_hkchat_file_adapter_maps_timeout_and_supports_basic_auth() -> Non
     assert timeout.value.code == "upstream_timeout"
     assert timeout_request is not None
 
-    captured_authorization = ""
+    captured_request: dict[str, object] = {}
 
     def success_handler(request: httpx.Request) -> httpx.Response:
-        nonlocal captured_authorization
-        captured_authorization = request.headers.get("Authorization", "")
-        return httpx.Response(200, json={"text": "收到。", "language": "yue-HK"})
+        captured_request.update(
+            {
+                "url": str(request.url),
+                "authorization": request.headers.get("Authorization", ""),
+                "content_type": request.headers.get("Content-Type", ""),
+                "body": json.loads(request.content),
+            }
+        )
+        return httpx.Response(
+            200,
+            json={"code": 200, "msg": "SUCCESS", "data": {"result": "收到。"}},
+        )
 
-    basic_adapter = HKChatSpeechAdapter(
+    official_adapter = HKChatSpeechAdapter(
         Settings(
+            hkchat_speech_api_key="hkgai-test-key",
             hkchat_speech_http_url="https://speech.example.test/transcribe",
-            hkchat_speech_auth_mode="basic",
-            hkchat_speech_username="organiser-user",
-            hkchat_speech_password="organiser-password",
         ),
         http_transport=httpx.MockTransport(success_handler),
     )
-    result = await basic_adapter.transcribe_file(_wav_bytes(), language_hint="yue-HK")
+    source_audio = _wav_bytes()
+    result = await official_adapter.transcribe_file(
+        source_audio,
+        language_hint="yue-HK",
+    )
 
-    assert captured_authorization.startswith("Basic ")
+    body = captured_request["body"]
+    assert captured_request["url"] == "https://speech.example.test/transcribe"
+    assert captured_request["authorization"] == "Bearer hkgai-test-key"
+    assert str(captured_request["content_type"]).startswith("application/json")
+    uuid.UUID(body["request_id"])
+    assert body["resource"]["type"] == 2
+    assert base64.b64decode(body["resource"]["data"]) == source_audio
+    assert body["config"] == {"ddc": False, "hot_keys": []}
     assert result.transcript == "收到。"
-    assert result.detected_language == "yue-HK"
+    assert result.detected_language is None
+    assert result.warnings == ()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("provider_code", "expected_code"),
+    [
+        (401, "upstream_auth"),
+        (403, "upstream_auth"),
+        (429, "upstream_rate_limited"),
+        (400, "upstream_unavailable"),
+        (500, "upstream_unavailable"),
+    ],
+)
+async def test_hkchat_file_adapter_maps_provider_json_failures(
+    provider_code: int, expected_code: str
+) -> None:
+    adapter = HKChatSpeechAdapter(
+        Settings(hkchat_speech_api_key="test-key"),
+        http_transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={"code": provider_code, "msg": "hidden", "data": None},
+            )
+        ),
+    )
+
+    with pytest.raises(SpeechModuleError) as failure:
+        await adapter.transcribe_file(_wav_bytes(), language_hint="auto")
+    assert failure.value.code == expected_code
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider_result", [None, "", "   ", 0, False, {}])
+async def test_hkchat_file_adapter_rejects_empty_or_non_text_transcripts(
+    provider_result: object,
+) -> None:
+    adapter = HKChatSpeechAdapter(
+        Settings(hkchat_speech_api_key="test-key"),
+        http_transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={
+                    "code": 200,
+                    "msg": "SUCCESS",
+                    "data": {"result": provider_result},
+                },
+            )
+        ),
+    )
+
+    with pytest.raises(SpeechModuleError) as failure:
+        await adapter.transcribe_file(_wav_bytes(), language_hint="auto")
+    assert failure.value.code == "upstream_unavailable"
+    assert failure.value.recoverable is True
 
 
 def test_live_websocket_relays_ordered_hkchat_transcript_events() -> None:
@@ -511,6 +645,42 @@ def test_upload_resource_is_closed_after_a_failed_request(monkeypatch) -> None:
     assert set(closed_filenames) == {"private-name.wav"}
 
 
+def test_rejected_http_request_does_not_release_an_unacquired_slot(monkeypatch) -> None:
+    release_calls: list[str] = []
+
+    async def reject_acquire(self, client_key: str) -> None:
+        raise SpeechModuleError(
+            "too_many_concurrent",
+            "同一客户端最多同时处理两段录音。",
+            429,
+            True,
+        )
+
+    async def track_release(self, client_key: str) -> None:
+        release_calls.append(client_key)
+
+    monkeypatch.setattr(SpeechTranscriptionModule, "acquire", reject_acquire)
+    monkeypatch.setattr(SpeechTranscriptionModule, "release", track_release)
+    client = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="https://speech.example.test/transcribe",
+            )
+        )
+    )
+
+    response = client.post(
+        "/api/speech/transcriptions",
+        data={"scope": "campaign-turn", "language_hint": "auto"},
+        files={"audio": ("anonymous.wav", _wav_bytes(), "audio/wav")},
+    )
+
+    assert response.status_code == 429
+    assert response.json()["detail"]["code"] == "too_many_concurrent"
+    assert release_calls == []
+
+
 @pytest.mark.asyncio
 async def test_client_speech_limits_isolate_concurrency_and_start_rate() -> None:
     module = SpeechTranscriptionModule(Settings())
@@ -545,6 +715,7 @@ async def test_live_only_configuration_rejects_file_transcription() -> None:
     module = SpeechTranscriptionModule(
         Settings(
             hkchat_speech_api_key="test-key",
+            hkchat_speech_http_url="",
             hkchat_speech_ws_url="wss://speech.example.test/live",
         ),
         LiveOnlyAdapter(),

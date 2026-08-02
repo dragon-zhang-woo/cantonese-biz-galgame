@@ -54,24 +54,38 @@ box remains text-only.
 ```text
 microphone
 ├── MediaRecorder → original Blob → IndexedDB / playback / download
-└── AudioWorklet → 16 kHz mono PCM → WebSocket → HKChat Speech captions
+├── browser SpeechRecognition → experimental interim/final captions
+└── AudioWorklet → 16 kHz mono PCM → guarded HKChat WebSocket path (disabled today)
 
 uploaded audio → IndexedDB → FastAPI validation/PyAV normalization
-               → HKChat Speech file transcription
+               → JSON/Base64 → HKChat Speech file transcription
 
 editable transcript → explicit learner submit → existing dual-model turn
 ```
 
 `SpeechTranscriptionModule` is independent of `GameEngine`. It validates file
 headers, size, duration, scope, client concurrency and WebSocket Origin, then
-normalizes audio to 16 kHz mono. The production adapter is enabled only when an
-explicit organiser-supplied HTTP or WebSocket endpoint is configured. A base
-host or API key alone is not treated as proof of a working contract.
+normalizes audio to 16 kHz mono. HKGAI Studio documents Bearer authentication
+and the JSON/Base64 `speech_recognize` HTTP response contract, so a Speech key
+enables file transcription through that verified endpoint. Studio currently
+documents only a TTS WebSocket; HKChat server-side live ASR stays disabled until
+the organiser supplies a distinct streaming-recognition contract. The production
+module does not construct a live adapter from a URL: server live capability can
+only be exposed by an explicitly injected adapter whose upstream contract has
+been implemented and verified.
 
-Live interim/final events use increasing sequence numbers. The browser keeps
-interim text separate from the editable field, ignores duplicate final events
-and only adopts a completed transcript. If live streaming fails, the finished
-recording is retained and file transcription is attempted once when available.
+On desktop Chrome/Edge, `UtteranceInput` separately uses the browser Web Speech
+API when available. It requests Cantonese with `yue-Hant-HK` and falls back to
+`zh-HK`, keeps interim text outside the editable field, and reports provenance as
+`browser-speech`. This client capability is intentionally independent of the
+backend `live_supported` flag. Browser recognition may use a browser-vendor cloud
+service, so the consent dialog discloses that audio can leave the device.
+
+If a real HKChat ASR WebSocket contract is supplied, its live interim/final events
+use increasing sequence numbers. Both live paths keep interim text separate from
+the editable field and only adopt a completed transcript. If browser or server
+live recognition fails, the finished recording is retained and HKChat file
+transcription is attempted once when available.
 Speech provenance is shown separately from DeepSeek scene provenance and
 HKChat text-review provenance.
 
@@ -90,9 +104,10 @@ HKChat text-review provenance.
   asset and clear the store.
 - Uploaded audio is decoded from request memory and `UploadFile` is closed in a
   `finally` block. The backend has no audio library or long-term audio storage.
-- Before the first recording or upload, the browser discloses that audio is sent
-  to HKChat Speech. In the custom-scenario intake, audio necessarily leaves the
-  browser before the resulting text can receive browser-side redaction.
+- Before the first recording or upload, the browser discloses that Chrome/Edge
+  may send microphone audio to its recognition service and that fallback/file
+  audio is sent to HKChat Speech. In the custom-scenario intake, audio can leave
+  the browser before the resulting text can receive browser-side redaction.
 - Custom-scenario raw text is replaced by the anonymised draft after
   composition and cleared when the experience unmounts; neither form is
   written to storage.
