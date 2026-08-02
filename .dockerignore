@@ -1,0 +1,11 @@
+.git
+.github
+.playwright-cli
+.env*
+node_modules
+dist
+output
+*.log
+*.docx
+**/.venv
+**/__pycache__

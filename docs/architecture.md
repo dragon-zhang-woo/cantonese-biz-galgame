@@ -45,17 +45,61 @@ and API inference share one JSON rule set and one conformance-fixture suite.
 8. If the composer is unavailable, the browser matches the closest authored
    scenario without retaining the raw input.
 
+## Speech lifecycle
+
+The campaign response, every practice response, the custom-scenario intake and
+each custom round share one `UtteranceInput` module. The practice-library search
+box remains text-only.
+
+```text
+microphone
+├── MediaRecorder → original Blob → IndexedDB / playback / download
+└── AudioWorklet → 16 kHz mono PCM → WebSocket → HKChat Speech captions
+
+uploaded audio → IndexedDB → FastAPI validation/PyAV normalization
+               → HKChat Speech file transcription
+
+editable transcript → explicit learner submit → existing dual-model turn
+```
+
+`SpeechTranscriptionModule` is independent of `GameEngine`. It validates file
+headers, size, duration, scope, client concurrency and WebSocket Origin, then
+normalizes audio to 16 kHz mono. The production adapter is enabled only when an
+explicit organiser-supplied HTTP or WebSocket endpoint is configured. A base
+host or API key alone is not treated as proof of a working contract.
+
+Live interim/final events use increasing sequence numbers. The browser keeps
+interim text separate from the editable field, ignores duplicate final events
+and only adopts a completed transcript. If live streaming fails, the finished
+recording is retained and file transcription is attempted once when available.
+Speech provenance is shown separately from DeepSeek scene provenance and
+HKChat text-review provenance.
+
 ## Trust boundaries
 
 - API keys live only in `backend/.env`.
 - The browser receives no provider credential.
 - CORS is restricted through `ALLOWED_ORIGINS`.
 - The backend does not persist request bodies.
+- Audio is stored only in the dedicated browser IndexedDB, for at most the
+  latest 20 assets and no longer than 30 days. It is never written to campaign
+  storage, training progress, `localStorage` or `TurnCache`.
+- The audio store records an anonymous generated label and technical metadata;
+  it does not record the original upload filename, transcript, scenario text or
+  model result. The learner can play, download, retranscribe or delete each
+  asset and clear the store.
+- Uploaded audio is decoded from request memory and `UploadFile` is closed in a
+  `finally` block. The backend has no audio library or long-term audio storage.
+- Before the first recording or upload, the browser discloses that audio is sent
+  to HKChat Speech. In the custom-scenario intake, audio necessarily leaves the
+  browser before the resulting text can receive browser-side redaction.
 - Custom-scenario raw text is replaced by the anonymised draft after
   composition and cleared when the experience unmounts; neither form is
   written to storage.
 - Source records are reviewed metadata, not scraped page bodies.
-- User identity and microphone audio are outside the MVP.
+- User accounts, cloud audio storage and cross-device audio sync remain outside
+  the MVP. Keyboard input and every deterministic offline path remain usable
+  when speech is unavailable.
 
 ## Provider extension
 

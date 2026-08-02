@@ -37,6 +37,7 @@ import {
 } from "./components/PracticeExperience.jsx";
 import { CustomScenarioExperience } from "./components/CustomScenarioExperience.jsx";
 import { JudgeShowcase } from "./components/JudgeShowcase.jsx";
+import { UtteranceInput } from "./components/UtteranceInput.jsx";
 import {
   buildCustomOption,
   canSubmitFreeResponse,
@@ -670,7 +671,12 @@ export function App() {
 
   function submitFreeResponse(event) {
     event.preventDefault();
-    if (!canSubmitFreeResponse(freeText) || selected || isLoading) return;
+    if (
+      !canSubmitFreeResponse(freeText) ||
+      freeText.length > FREE_RESPONSE_MAX_LENGTH ||
+      selected ||
+      isLoading
+    ) return;
     chooseOption(buildCustomOption(scene, freeText));
   }
 
@@ -1017,19 +1023,24 @@ export function App() {
               <span>或者由你自己讲</span>
             </div>
             <form className="free-response-form" onSubmit={submitFreeResponse}>
-              <label htmlFor="free-response">自由回应客户</label>
               <div className="free-response-field">
-                <textarea
+                <UtteranceInput
                   id="free-response"
+                  label="自由回应客户"
                   value={freeText}
-                  onChange={(event) => setFreeText(event.target.value)}
+                  onChange={setFreeText}
                   maxLength={FREE_RESPONSE_MAX_LENGTH}
                   rows="2"
                   placeholder="用粤语、普通话或中英夹杂回答…"
+                  scope={experience === "practice" ? "practice-turn" : "campaign-turn"}
                 />
                 <button
                   type="submit"
-                  disabled={!canSubmitFreeResponse(freeText) || isLoading}
+                  disabled={
+                    !canSubmitFreeResponse(freeText) ||
+                    freeText.length > FREE_RESPONSE_MAX_LENGTH ||
+                    isLoading
+                  }
                 >
                   <PaperPlaneTilt weight="fill" aria-hidden="true" />
                   让双模型回应

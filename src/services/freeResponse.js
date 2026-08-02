@@ -24,5 +24,6 @@ export function buildCustomOption(scene, value) {
     learningPoint: scene.freeformFallback.learningPoint,
     delta: { trust: 0, professionalism: 0, language: 0, culture: 0 },
     isCustom: true,
+    inputKind: "free",
   };
 }
