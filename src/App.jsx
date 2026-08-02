@@ -410,8 +410,8 @@ function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resu
         <button className="judge-showcase-entry" type="button" onClick={onShowcase}>
           <FilmStrip weight="duotone" aria-hidden="true" />
           <span>
-            <strong>90 秒评委演示</strong>
-            <small>精选第 1、4、5 幕 · 零网络 · 不改变主线存档</small>
+            <strong>3 分钟评委演示</strong>
+            <small>主线 · 训练库 · 自定义输入 · 学习复盘 · 零网络</small>
           </span>
           <ArrowRight weight="bold" aria-hidden="true" />
         </button>
@@ -720,7 +720,7 @@ export function App() {
 
   function openJudgeShowcase() {
     setShowJudgeShowcase(true);
-    setLiveMessage("已打开 90 秒评委演示");
+    setLiveMessage("已打开 3 分钟评委演示");
   }
 
   function enterCampaignFromShowcase() {
