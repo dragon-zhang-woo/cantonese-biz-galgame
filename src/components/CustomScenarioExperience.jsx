@@ -25,6 +25,8 @@ import {
 } from "../services/customScenario.js";
 import { canSubmitFreeResponse } from "../services/freeResponse.js";
 import { requestAiTurn } from "../services/gameApi.js";
+import { runtimeConfig } from "../services/runtimeConfig.js";
+import { UtteranceInput } from "./UtteranceInput.jsx";
 
 const pressureLevels = ["温和", "直接", "高压"];
 const relationOptions = ["自动", "上司", "客户", "跨部门伙伴", "同事", "带教经理"];
@@ -140,7 +142,9 @@ function Intake({
   isLoading,
   error,
 }) {
-  const valid = description.trim().length >= CUSTOM_SCENARIO_MIN_LENGTH;
+  const valid =
+    description.trim().length >= CUSTOM_SCENARIO_MIN_LENGTH &&
+    description.length <= CUSTOM_SCENARIO_MAX_LENGTH;
   return (
     <section className="custom-intake" aria-labelledby="custom-intake-title">
       <header>
@@ -163,21 +167,21 @@ function Intake({
         </div>
       </div>
 
-      <label className="custom-description" htmlFor="custom-scenario-description">
-        <span>你正在面对什么困难？</span>
-        <textarea
+      <div className="custom-description">
+        <UtteranceInput
           id="custom-scenario-description"
+          label="你正在面对什么困难？"
           value={description}
-          onChange={(event) => onDescription(event.target.value)}
-          minLength={CUSTOM_SCENARIO_MIN_LENGTH}
+          onChange={onDescription}
           maxLength={CUSTOM_SCENARIO_MAX_LENGTH}
           rows="6"
           placeholder="例如：经理要求我同时完成两件今天到期的任务，我不知道怎样提出优先级。"
+          scope="scenario-intake"
         />
         <output>
           {description.length}/{CUSTOM_SCENARIO_MAX_LENGTH} · 至少 {CUSTOM_SCENARIO_MIN_LENGTH} 字
         </output>
-      </label>
+      </div>
 
       <div className="custom-profile-grid">
         <label>
@@ -258,7 +262,33 @@ function Intake({
   );
 }
 
-function Prepared({ scenario, onStart, onBack, onHome }) {
+function Prepared({
+  scenario,
+  relation,
+  onRelation,
+  channel,
+  onChannel,
+  focus,
+  onFocus,
+  pressure,
+  onPressure,
+  rounds,
+  onRounds,
+  onRecompose,
+  isLoading,
+  onStart,
+  onBack,
+  onHome,
+}) {
+  const sourceLabel =
+    scenario.compositionSource === "rules+knowledge"
+      ? "服务端规则＋知识编排"
+      : "本地离线编排";
+  const inferenceItems = [
+    ["关系", scenario.inference.relation],
+    ["渠道", scenario.inference.channel],
+    ["重点", scenario.inference.focus],
+  ];
   return (
     <section className="custom-prepared" aria-labelledby="custom-prepared-title">
       <header>
@@ -275,13 +305,69 @@ function Prepared({ scenario, onStart, onBack, onHome }) {
         <h2 id="custom-prepared-title">{scenario.title}</h2>
         <p>{scenario.redactedDescription}</p>
         <div>
-          <i>{scenario.relation}</i>
-          <i>{scenario.channel}</i>
+          <i className="is-source">{sourceLabel}</i>
           <i>{scenario.pressure}压力</i>
           <i>建议 {scenario.rounds.length} 轮 · 两轮后可收口</i>
-          <i>DeepSeek 角色推演 + 港话通语言反馈</i>
+          <i>
+            {runtimeConfig.remoteApiEnabled
+              ? "训练回合将尝试 DeepSeek 与港话通，失败时独立回退"
+              : "公开演示使用本地回退；键盘、录音和完整训练流程保持可用"}
+          </i>
         </div>
       </div>
+
+      <div className="custom-inference-grid" aria-label="系统推断结果">
+        {inferenceItems.map(([label, inference]) => (
+          <section
+            key={label}
+            className={inference.confidence === "low" ? "needs-confirmation" : ""}
+          >
+            <span>{label}</span>
+            <strong>{inference.value}</strong>
+            <small>{inference.reasons.join("；")}</small>
+            {inference.confidence === "low" && <em>请确认</em>}
+          </section>
+        ))}
+      </div>
+
+      <details className="custom-adjustment">
+        <summary>修正识别与训练设置</summary>
+        <div className="custom-profile-grid">
+          <label>
+            <span>由谁和你对练</span>
+            <select value={relation} onChange={(event) => onRelation(event.target.value)}>
+              {relationOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>沟通渠道</span>
+            <select value={channel} onChange={(event) => onChannel(event.target.value)}>
+              {channelOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>这次重点</span>
+            <select value={focus} onChange={(event) => onFocus(event.target.value)}>
+              {focusOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>对方压力</span>
+            <select value={pressure} onChange={(event) => onPressure(event.target.value)}>
+              {pressureLevels.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>建议轮数</span>
+            <select value={rounds} onChange={(event) => onRounds(Number(event.target.value))}>
+              {[3, 5, 6].map((count) => <option key={count} value={count}>{count} 轮</option>)}
+            </select>
+          </label>
+        </div>
+        <button className="secondary-cta" type="button" onClick={onRecompose} disabled={isLoading}>
+          {isLoading ? "正在重新编排…" : "按修正重新编排"}
+        </button>
+      </details>
 
       <div className="redaction-receipt">
         <EyeSlash weight="duotone" aria-hidden="true" />
@@ -396,6 +482,10 @@ function Training({
                 {result.coachFeedback}
               </span>
             </div>
+            <div className="custom-next-move">
+              <Target weight="duotone" />
+              <span><strong>下一步建议</strong>{result.nextMove}</span>
+            </div>
             <div className="custom-language-row">
               {[
                 ["自然度", result.localization.naturalness],
@@ -442,14 +532,15 @@ function Training({
           </>
         ) : (
           <form onSubmit={onSubmit} className="custom-answer-form">
-            <label htmlFor="custom-round-answer">你的回应</label>
-            <textarea
+            <UtteranceInput
               id="custom-round-answer"
+              label="你的回应"
               value={value}
-              onChange={(event) => onValue(event.target.value)}
-              maxLength="320"
+              onChange={onValue}
+              maxLength={320}
               rows="3"
               placeholder="用粤语、普通话或中英夹杂回应…"
+              scope="custom-turn"
             />
             <div>
               <span>{scene.coachHint}</span>
@@ -457,17 +548,27 @@ function Training({
             </div>
             {isLoading && (
               <div className="custom-model-live" role="status">
-                <span><i /> DeepSeek 正在延续角色反应</span>
-                <span><i /> 港话通正在检查自然度与商务语气</span>
+                {runtimeConfig.remoteApiEnabled ? (
+                  <>
+                    <span><i /> DeepSeek 正在延续角色反应</span>
+                    <span><i /> 港话通正在检查自然度与商务语气</span>
+                  </>
+                ) : (
+                  <span><i /> 正在生成可靠的本地训练反馈</span>
+                )}
               </div>
             )}
             <button
               className="primary-cta"
               type="submit"
-              disabled={!canSubmitFreeResponse(value) || isLoading}
+              disabled={!canSubmitFreeResponse(value) || value.length > 320 || isLoading}
             >
               <PaperPlaneTilt weight="fill" />
-              {isLoading ? "双模型正在并行回应…" : "提交本轮回应"}
+              {isLoading
+                ? runtimeConfig.remoteApiEnabled
+                  ? "双模型正在并行回应…"
+                  : "正在生成本地反馈…"
+                : "提交本轮回应"}
             </button>
           </form>
         )}
@@ -477,6 +578,7 @@ function Training({
 }
 
 function Result({ scenario, responses, rubric, onRetry, onHome }) {
+  const [copied, setCopied] = useState(false);
   const language = responses.reduce(
     (totals, response) => ({
       naturalness: totals.naturalness + response.turn.localization.naturalness,
@@ -486,7 +588,18 @@ function Result({ scenario, responses, rubric, onRetry, onHome }) {
     { naturalness: 0, politeness: 0, businessFit: 0 },
   );
   const average = (key) => Math.round(language[key] / responses.length);
-  const copyTemplate = () => navigator.clipboard?.writeText(scenario.transferTemplate);
+  const copyActionCard = async () => {
+    const latest = responses.at(-1).turn;
+    const card = [
+      `匿名任务：${scenario.task}`,
+      `情境：${scenario.redactedDescription}`,
+      `港式改写：${latest.localization.hkRewrite}`,
+      `现实行动模板：${scenario.transferTemplate}`,
+      `下一步：${latest.nextMove}`,
+    ].join("\n");
+    await navigator.clipboard?.writeText(card);
+    setCopied(true);
+  };
 
   return (
     <section className="custom-result" aria-labelledby="custom-result-title">
@@ -534,6 +647,16 @@ function Result({ scenario, responses, rubric, onRetry, onHome }) {
               </p>
             </div>
           </div>
+          <div className="custom-response-timeline">
+            <h3>逐轮推进轨迹</h3>
+            {responses.map((response) => (
+              <div key={response.roundId}>
+                <span>ROUND {response.roundIndex}</span>
+                <strong>{response.turn.taskProgress}% · 关系{response.turn.relationshipSignal}</strong>
+                <p>{response.turn.nextMove}</p>
+              </div>
+            ))}
+          </div>
         </main>
 
         <aside>
@@ -549,10 +672,11 @@ function Result({ scenario, responses, rubric, onRetry, onHome }) {
               <small>可直接复用的行动模板</small>
               <strong>{scenario.transferTemplate}</strong>
             </span>
-            <button type="button" onClick={copyTemplate} aria-label="复制行动模板">
+            <button type="button" onClick={copyActionCard} aria-label="复制现实行动卡">
               <Copy weight="bold" />
             </button>
           </div>
+          {copied && <p className="custom-copy-status" role="status">现实行动卡已复制；不包含你的原始输入或逐轮回答。</p>}
           <details className="source-drawer">
             <summary>
               <FileText weight="duotone" />
@@ -642,7 +766,7 @@ export function CustomScenarioExperience({ onHome }) {
         focus,
       });
       setScenario(nextScenario);
-      setDescription("");
+      setDescription(nextScenario.redactedDescription);
       setPressure(nextPressure);
       setPhase("prepared");
     } catch (composeError) {
@@ -668,6 +792,7 @@ export function CustomScenarioExperience({ onHome }) {
     const option = {
       id: `custom-round-${roundIndex + 1}`,
       text: answer.trim(),
+      inputKind: "free",
       delta: { trust: 0, professionalism: 0, language: 0, culture: 0 },
     };
     const fallback = {
@@ -753,6 +878,18 @@ export function CustomScenarioExperience({ onHome }) {
       {phase === "prepared" && scenario && (
         <Prepared
           scenario={scenario}
+          relation={relation}
+          onRelation={setRelation}
+          channel={channel}
+          onChannel={setChannel}
+          focus={focus}
+          onFocus={setFocus}
+          pressure={pressure}
+          onPressure={setPressure}
+          rounds={rounds}
+          onRounds={setRounds}
+          onRecompose={() => compose(pressure, scenario.redactedDescription)}
+          isLoading={isLoading}
           onStart={startTraining}
           onBack={() => setPhase("intake")}
           onHome={onHome}
@@ -769,7 +906,7 @@ export function CustomScenarioExperience({ onHome }) {
           onSubmit={submitRound}
           onNext={advanceRound}
           onFinish={finishTraining}
-          canFinish={roundIndex >= 1}
+          canFinish={roundIndex >= 1 || Boolean(roundResult?.shouldClose)}
           isLoading={isLoading}
           onHome={onHome}
         />

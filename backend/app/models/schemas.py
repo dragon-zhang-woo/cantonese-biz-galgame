@@ -46,6 +46,35 @@ class SceneContext(BaseModel):
 class PlayerAction(BaseModel):
     choice_id: str = Field(min_length=1, max_length=80)
     text: str = Field(min_length=1, max_length=320)
+    input_kind: Literal["authored", "free"] = "authored"
+
+    @property
+    def is_freeform(self) -> bool:
+        return self.input_kind == "free" or self.choice_id == "custom-response" or self.choice_id.startswith("custom-round-")
+
+
+class SpeechRecordingLimits(BaseModel):
+    campaign_turn: int = 90_000
+    practice_turn: int = 90_000
+    custom_turn: int = 120_000
+    scenario_intake: int = 300_000
+
+
+class SpeechCapabilities(BaseModel):
+    configured: bool
+    live_supported: bool
+    upload_supported: bool
+    accepted_mime_types: list[str]
+    max_upload_bytes: int
+    recording_limits_ms: SpeechRecordingLimits
+
+
+class SpeechTranscriptionResponse(BaseModel):
+    transcript: str = Field(min_length=1, max_length=4000)
+    detected_language: str | None = Field(default=None, max_length=40)
+    duration_ms: int = Field(ge=0)
+    transcription_source: Literal["hkchat-speech"] = "hkchat-speech"
+    warnings: list[str] = Field(default_factory=list, max_length=5)
 
 
 class TurnFallback(BaseModel):
@@ -169,6 +198,18 @@ class SkillCardRef(BaseModel):
     legal_risk: Literal["low", "medium", "high"]
 
 
+class InferenceResult(BaseModel):
+    value: str
+    confidence: Literal["high", "medium", "low"]
+    reasons: list[str] = Field(min_length=1, max_length=3)
+
+
+class ScenarioInference(BaseModel):
+    relation: InferenceResult
+    channel: InferenceResult
+    focus: InferenceResult
+
+
 class ScenarioRound(BaseModel):
     id: str
     purpose: str
@@ -191,6 +232,7 @@ class ComposedScenario(BaseModel):
     hidden_risk: str
     transfer_template: str
     fallback_scenario_id: str
+    visual_scene_id: str
     background: str
     redacted_description: str
     redaction: RedactionSummary
@@ -199,3 +241,5 @@ class ComposedScenario(BaseModel):
     rounds: list[ScenarioRound] = Field(min_length=2, max_length=6)
     disclaimer: str
     provider: Literal["rules+knowledge"]
+    composition_source: Literal["rules+knowledge", "offline-match"]
+    inference: ScenarioInference

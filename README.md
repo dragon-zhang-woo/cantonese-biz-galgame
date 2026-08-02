@@ -7,8 +7,9 @@
 **在香港职场真实关系中练习商务粤语的 AI 互动视觉小说。**
 
 [本地运行](#本地运行) ·
+[在线体验](https://dragon-zhang-woo.github.io/cantonese-biz-galgame/) ·
 [下载 v1.0.0](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases/tag/v1.0.0) ·
-[90 秒演示脚本](docs/demo-script.md) ·
+[3 分钟演示脚本](docs/demo-script.md) ·
 [参赛说明](PROJECT_SUBMISSION.md)
 
 ![CantoneseBiz 香港商务粤语 AI 训练宣传图](docs/preview.png)
@@ -19,6 +20,10 @@
 
 本项目是 **2026 火鸟 AI 黑客松开放赛道**的原创可运行作品。
 
+公开体验由 GitHub Pages 托管，核心主线、训练库、自定义情境规则编排和评委
+导览无需后端。只有在仓库变量 `PUBLIC_API_BASE_URL` 明确指向受保护的后端时，
+自由输入才会尝试云端双模型；否则浏览器不会默认请求 `localhost` 或任何模型 API。
+
 ## 三种训练入口
 
 | 入口 | 适合体验 | 主要能力 |
@@ -26,6 +31,10 @@
 | **电影式主线** | 快速理解产品与世界观 | 五幕固定故事图、人物关系后果、结局学习画像；无网络也可完整通关 |
 | **训练手册** | 针对具体职场任务练习 | 12 项独立任务，可按关系、技能、压力、难度和渠道筛选 |
 | **我的真实情境** | 带入自己的工作难题 | 浏览器先脱敏，生成 3–6 轮训练；完成两轮后可随时收口复盘 |
+
+首页另提供 **3 分钟评委演示**：依次覆盖五幕主线、12 项训练、可编辑的
+预置现实情境、第四幕后果对比与学习复盘；不调用模型、不写主线存档，
+退出后原进度保持不变。
 
 覆盖的任务包括：澄清需求、协商优先级、沟通坏消息、表达异议、柔性跟进、
 范围控制、会议纪要、个人资料边界、利益冲突、纠正性反馈与高层汇报。
@@ -35,6 +44,8 @@
 ```text
 玩家选择或自由作答
         │
+        ├── 浏览器 SpeechRecognition：桌面 Chrome/Edge 实验性实时粤语字幕
+        ├── 港话通 Speech：用官方 HTTP 识别把录音转成可编辑文字
         ├── DeepSeek：在人物、利益与当前关系约束下生成 NPC 反应
         ├── 港话通：独立检查自然度、礼貌度、商务适配并给出港式改写
         └── 程序：校验输出、限制分数变化、控制故事节点与失败回退
@@ -48,23 +59,25 @@ AI 负责难以穷举的角色表演和语境解释；程序始终掌握故事�
 
 - **关系后果可见**：追踪信任、专业度、粤语自然度与文化适配，并用人物反应和
   剧情证据解释变化；
-- **自由表达**：支持粤语、普通话与中英夹杂输入，不局限于预写选项；
+- **自由表达**：主线、12 项训练和自定义情境均支持键盘、麦克风录音与
+  录音上传；桌面 Chrome/Edge 可显示实验性实时字幕，停录后可由港话通
+  整段转写兜底，文字确认后才提交双模型；
 - **任务导向复盘**：按目标清晰、具体性、主人翁意识、关系维护、风险透明和
   下一步六个维度评分，并提供可复用句式；
 - **来源可追溯**：训练技能与香港劳工处、平机会、私隐专员公署和廉政公署等
   官方资料绑定；
 - **隐私最小化**：真实情境先在浏览器脱敏；原文、自由作答和 API 密钥不写入
-  本机存档；
+  主线存档；音频只进专用 IndexedDB，最多 20 条、30 天，并可随时下载或清空；
 - **稳定演示**：标准剧情与预写训练路径完全离线可用，支持本机断点恢复；
 - **响应式体验**：覆盖桌面与 390px 手机布局，并提供浏览器粤语朗读。
 
 ## 推荐演示路径
 
 1. 打开“我的真实情境”，输入一段不含真实姓名和机构的职场难题；
-2. 展示脱敏回执、关系与压力识别、技能卡和训练轮次；
+2. 展示脱敏回执、编排来源、置信度、技能卡和可修正设置；
 3. 自由回答两轮，对比 DeepSeek 人物反应与港话通语言反馈；
 4. 主动收口，查看六维量表、港式改写和现实复用模板；
-5. 返回训练手册筛选 12 项任务，再切换五幕标准剧情展示离线保底。
+5. 返回首页打开“3 分钟评委演示”，按五段导览直接录制完整产品路径。
 
 完整现场方案见 [`docs/demo-script.md`](docs/demo-script.md)。
 
@@ -74,15 +87,21 @@ AI 负责难以穷举的角色表演和语境解释；程序始终掌握故事�
 React 19 + Vite 6
 ├── 五幕主线与 12 项训练任务（确定性本地数据）
 ├── 自定义情境（浏览器脱敏、进度与行为量表）
+├── UtteranceInput（浏览器实时字幕、录音、上传、可编辑转写与 IndexedDB）
 └── FastAPI
     ├── POST /api/game/turn
     │   ├── DeepSeek Provider
     │   └── HKChat Provider
-    └── POST /api/scenario/compose
-        └── 受控模板、技能卡与来源编排
+    ├── POST /api/scenario/compose
+    │   └── 受控模板、技能卡与来源编排
+    └── /api/speech/transcriptions
+        └── 港话通 Speech Adapter（官方 JSON/Base64 文件识别；流式守门）
 ```
 
 后端通过 Pydantic 验证结构化输出，并为两类模型提供独立降级和短期内存缓存。
+公开后端可启用持久化预算闸门：`PUBLIC_AI_BUDGET_CNY=5`、每次双模型回合
+保守预留 ¥0.05、全站最多 100 回合、每个匿名客户端最多 5 回合。应用层只保存
+哈希客户端标识与计数；生产环境仍应使用单独的小额余额 API 账户作为最终止损。
 详细设计见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 本地运行
@@ -127,6 +146,27 @@ cp .env.example .env
 `http://localhost:8000`；可在根目录 `.env.local` 中通过
 `VITE_API_BASE_URL` 修改。
 
+GitHub Pages 使用 `.github/workflows/pages.yml` 从 `main` 构建。默认公开构建是
+零项目 API 消耗；若已有 HTTPS 后端，在仓库 Actions Variable 中设置
+`PUBLIC_API_BASE_URL` 后重新部署即可启用受限自由输入。不要把任何模型密钥写进
+Vite 环境变量或前端代码。
+
+港话通 [Studio Speech](https://hkgai-studio.prod.hkchat.app/zh-Hans/modelhub/speech)
+已确认文件识别使用 Bearer 鉴权，并以 JSON/Base64 调用
+`/server_proxy/api/v1/speech_recognize`；填写 `HKCHAT_SPEECH_API_KEY` 即可启用
+上传与停止后转写。Studio 当前只公布 TTS WebSocket，没有实时 ASR 契约，
+因此 `HKCHAT_SPEECH_WS_URL` 默认留空，服务端能力中的 `live_supported=false`
+只表示港话通流式识别未开启，绝不以轮询整段录音伪装流式识别。桌面版会在
+Chrome/Edge 支持时使用浏览器 Web Speech API 提供实验性实时粤语字幕；这条
+客户端路径不需要项目 API Key，但浏览器可能把语音发送到其云端识别服务，
+产品会在首次使用前明确告知。识别失败时，完整录音仍保留并自动尝试一次
+港话通整段转写。没有任何语音能力时，录音仍可在本机下载，键盘和离线训练
+完全不受影响。
+
+如需向主办方申请实时 ASR 契约，可直接使用
+[`docs/hkchat-live-asr-contract-request.md`](docs/hkchat-live-asr-contract-request.md)
+中的最小问题清单和验收标准。
+
 ### Docker Compose
 
 先复制 `backend/.env.example` 为 `backend/.env`，然后运行：
@@ -146,10 +186,15 @@ npm run build
 
 cd backend
 pytest
+
+cd ..
+docker build --tag cantonese-biz-web:local .
+docker build --tag cantonese-biz-api:local ./backend
 ```
 
 GitHub Actions 会在提交到 `develop`、`main` 及相关 Pull Request 时执行同类
-前后端检查。
+前后端检查，并构建 Web 与 API 两个容器镜像。Docker build context 会排除
+本机密钥、虚拟环境、测试输出和未跟踪文档。
 
 ## 发行版与容器
 

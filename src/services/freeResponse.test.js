@@ -26,6 +26,7 @@ describe("free response", () => {
       language: 0,
       culture: 0,
     });
+    expect(option.inputKind).toBe("free");
   });
 
   it("requires a meaningful minimum length", () => {

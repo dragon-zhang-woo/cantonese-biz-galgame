@@ -86,6 +86,27 @@ def test_accepts_bounded_custom_response_with_neutral_fallback() -> None:
     assert request.fallback.delta.trust == 0
 
 
+def test_free_input_kind_is_explicit_and_legacy_custom_rounds_remain_compatible() -> None:
+    payload = sample_request().model_dump()
+    payload["player_action"] = {
+        "choice_id": "voice-response",
+        "text": "我先确认负责人和时间。",
+        "input_kind": "free",
+    }
+    explicit = TurnRequest.model_validate(payload)
+
+    legacy_payload = sample_request().model_dump()
+    legacy_payload["player_action"] = {
+        "choice_id": "custom-round-2",
+        "text": "我先确认负责人和时间。",
+    }
+    legacy = TurnRequest.model_validate(legacy_payload)
+
+    assert explicit.player_action.input_kind == "free"
+    assert explicit.player_action.is_freeform is True
+    assert legacy.player_action.is_freeform is True
+
+
 def test_accepts_practice_task_context() -> None:
     payload = sample_request().model_dump()
     payload["scene"].update(

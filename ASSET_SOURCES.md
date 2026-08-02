@@ -149,6 +149,23 @@ The headline and three proof labels are intentional product copy; QA checked the
 legibility and confirmed that no unintended brand, watermark, signature or QR code was
 introduced.
 
+## Judge-showcase crisis handoff
+
+The 2026-08-01 judge-showcase expansion adds one original 1536×1024 consequence
+scene for the positive Act 4 crisis choice. It preserves the approved Chen Jiamin
+anchor and rainy Central war-room identity while moving the player handoff and
+abstract repair plan above the lower 40% dialogue-safe area.
+
+| File | Status | Generation record | Purpose |
+|---|---|---|---|
+| `public/assets/showcase-chen-crisis-handoff-act4-v01.png` | approved | `exec-0cd177eb-5ddb-4a90-bcad-60898d9e52bc` → `exec-ae61639e-4723-467a-a0c8-90f3b5c9c914` | Read-only judge showcase, Act 4 positive consequence |
+
+The complete prompt, three project-owned references, rejected first composition,
+targeted safe-area edit and QA results are recorded in
+[`docs/visual-production/GPT_IMAGE_2_SHOWCASE_PROMPT.md`](docs/visual-production/GPT_IMAGE_2_SHOWCASE_PROMPT.md).
+The accepted image contains no intended readable text, brand, signature, watermark,
+QR code, real person or existing franchise character.
+
 The 2026-07-22 onboarding prompt requested an original fictional manager in a
 Hong Kong office reception, with a right-weighted subject, blue-and-warm-gold
 cinematic lighting and a quiet lower area reserved for the game interface. The

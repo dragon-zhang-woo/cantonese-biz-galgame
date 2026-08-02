@@ -36,6 +36,8 @@ import {
   PracticeResult,
 } from "./components/PracticeExperience.jsx";
 import { CustomScenarioExperience } from "./components/CustomScenarioExperience.jsx";
+import { JudgeShowcase } from "./components/JudgeShowcase.jsx";
+import { UtteranceInput } from "./components/UtteranceInput.jsx";
 import {
   buildCustomOption,
   canSubmitFreeResponse,
@@ -53,6 +55,7 @@ import {
   recordPracticeResult,
 } from "./services/practiceStore.js";
 import { evaluateBehavior } from "./services/behaviorRubric.js";
+import { runtimeConfig } from "./services/runtimeConfig.js";
 
 const statusMeta = {
   trust: { label: "信任", Icon: Handshake },
@@ -94,15 +97,22 @@ function ScorePill({ name, value, compact = false }) {
 
 function ModeToggle({ mode, onChange }) {
   const isAi = mode === "ai";
+  const isOfflinePublicDemo =
+    runtimeConfig.publicDemoMode && !runtimeConfig.remoteApiEnabled;
+  const label = isOfflinePublicDemo
+    ? "公开演示 · 离线"
+    : isAi
+      ? "AI 即兴"
+      : "标准剧情";
   return (
     <button
       className="mode-toggle"
       type="button"
       onClick={() => onChange(isAi ? "story" : "ai")}
-      aria-label={`当前为${isAi ? "AI 即兴" : "标准剧情"}模式，点击切换`}
+      aria-label={`当前为${label}模式，点击切换`}
     >
       {isAi ? <Cloud weight="duotone" /> : <CloudSlash weight="duotone" />}
-      <span>{isAi ? "AI 即兴" : "标准剧情"}</span>
+      <span>{label}</span>
       <i aria-hidden="true" />
     </button>
   );
@@ -362,7 +372,7 @@ function Aftermath({
   );
 }
 
-function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
+function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resumeStage }) {
   const canResume = Boolean(resumeStage);
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="intro-title">
@@ -376,6 +386,14 @@ function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
           <Brain weight="duotone" aria-hidden="true" />
           <span>AI 分析语境与关系后果；剧情控制始终由规则引擎掌握。</span>
         </div>
+        {runtimeConfig.publicDemoMode && (
+          <div className="public-demo-note" role="status">
+            <CloudSlash weight="duotone" aria-hidden="true" />
+            <span>
+              公开体验默认零消耗；自由输入仅在受限云端额度可用时增强，额度耗尽会自动离线回退。
+            </span>
+          </div>
+        )}
         <div className="intro-entry-grid">
           <button className="intro-entry intro-entry--story" type="button" onClick={onStart}>
             <FilmStrip weight="duotone" aria-hidden="true" />
@@ -400,11 +418,23 @@ function IntroModal({ onStart, onPractice, onCustom, onRestart, resumeStage }) {
             <span>
               <small>我的现实情境</small>
               <strong>把正在面对的困难拿来练</strong>
-              <em>先脱敏 · 3–6 轮双模型连续反馈</em>
+              <em>
+                {runtimeConfig.remoteApiEnabled
+                  ? "先脱敏 · 3–6 轮双模型连续反馈"
+                  : "先脱敏 · 3–6 轮离线连续训练"}
+              </em>
             </span>
             <ArrowRight weight="bold" aria-hidden="true" />
           </button>
         </div>
+        <button className="judge-showcase-entry" type="button" onClick={onShowcase}>
+          <FilmStrip weight="duotone" aria-hidden="true" />
+          <span>
+            <strong>3 分钟评委演示</strong>
+            <small>主线 · 训练库 · 自定义输入 · 学习复盘 · 零网络</small>
+          </span>
+          <ArrowRight weight="bold" aria-hidden="true" />
+        </button>
         {canResume && (
           <button className="text-button intro-reset" type="button" onClick={onRestart}>
             重新开始本次演练
@@ -512,6 +542,7 @@ export function App() {
   const [showPracticeBrief, setShowPracticeBrief] = useState(false);
   const [showPracticeResult, setShowPracticeResult] = useState(false);
   const [showCustomScenario, setShowCustomScenario] = useState(false);
+  const [showJudgeShowcase, setShowJudgeShowcase] = useState(false);
   const [practiceScore, setPracticeScore] = useState(0);
   const [practiceRubric, setPracticeRubric] = useState(null);
   const [practiceProgress, setPracticeProgress] = useState(() =>
@@ -545,6 +576,7 @@ export function App() {
     showPracticeBrief ||
     showPracticeResult ||
     showCustomScenario ||
+    showJudgeShowcase ||
     isEnded;
 
   useEffect(() => {
@@ -659,7 +691,12 @@ export function App() {
 
   function submitFreeResponse(event) {
     event.preventDefault();
-    if (!canSubmitFreeResponse(freeText) || selected || isLoading) return;
+    if (
+      !canSubmitFreeResponse(freeText) ||
+      freeText.length > FREE_RESPONSE_MAX_LENGTH ||
+      selected ||
+      isLoading
+    ) return;
     chooseOption(buildCustomOption(scene, freeText));
   }
 
@@ -701,6 +738,19 @@ export function App() {
     setLiveMessage("已打开我的现实情境");
   }
 
+  function openJudgeShowcase() {
+    setShowJudgeShowcase(true);
+    setLiveMessage("已打开 3 分钟评委演示");
+  }
+
+  function enterCampaignFromShowcase() {
+    setShowJudgeShowcase(false);
+    setExperience("campaign");
+    setStarted(true);
+    setShowPrelude(true);
+    setLiveMessage("已从精选导览进入完整主线");
+  }
+
   function selectPracticeScenario(scenario) {
     setExperience("practice");
     setPracticeSceneId(scenario.id);
@@ -734,6 +784,7 @@ export function App() {
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
     setShowCustomScenario(false);
+    setShowJudgeShowcase(false);
     setShowPrelude(false);
     setShowDossiers(false);
     setShowAftermath(false);
@@ -805,6 +856,7 @@ export function App() {
     setShowPracticeBrief(false);
     setShowPracticeResult(false);
     setShowCustomScenario(false);
+    setShowJudgeShowcase(false);
     setPracticeScore(0);
     setPracticeRubric(null);
     setResumeAvailable(false);
@@ -991,19 +1043,24 @@ export function App() {
               <span>或者由你自己讲</span>
             </div>
             <form className="free-response-form" onSubmit={submitFreeResponse}>
-              <label htmlFor="free-response">自由回应客户</label>
               <div className="free-response-field">
-                <textarea
+                <UtteranceInput
                   id="free-response"
+                  label="自由回应客户"
                   value={freeText}
-                  onChange={(event) => setFreeText(event.target.value)}
+                  onChange={setFreeText}
                   maxLength={FREE_RESPONSE_MAX_LENGTH}
                   rows="2"
                   placeholder="用粤语、普通话或中英夹杂回答…"
+                  scope={experience === "practice" ? "practice-turn" : "campaign-turn"}
                 />
                 <button
                   type="submit"
-                  disabled={!canSubmitFreeResponse(freeText) || isLoading}
+                  disabled={
+                    !canSubmitFreeResponse(freeText) ||
+                    freeText.length > FREE_RESPONSE_MAX_LENGTH ||
+                    isLoading
+                  }
                 >
                   <PaperPlaneTilt weight="fill" aria-hidden="true" />
                   让双模型回应
@@ -1066,6 +1123,7 @@ export function App() {
           }}
           onPractice={openPracticeLibrary}
           onCustom={openCustomScenario}
+          onShowcase={openJudgeShowcase}
           onRestart={restart}
           resumeStage={resumeAvailable ? scene.stage : null}
         />
@@ -1131,6 +1189,12 @@ export function App() {
       )}
       {showCustomScenario && (
         <CustomScenarioExperience onHome={returnHome} />
+      )}
+      {showJudgeShowcase && (
+        <JudgeShowcase
+          onClose={() => setShowJudgeShowcase(false)}
+          onEnterCampaign={enterCampaignFromShowcase}
+        />
       )}
       {experience === "campaign" && started && isEnded && (
         <Ending status={status} history={history} onRestart={restart} onHome={returnHome} />

@@ -43,10 +43,12 @@ Requirements:
   ordinary coaching language.
 - Do not introduce legal, financial or medical advice.
 - Each delta must be an integer from -6 to 6.
-- When choice_id is not "custom-response", preserve the supplied outcome
+- When player_action.input_kind is "authored" and choice_id is not a legacy
+  custom-response/custom-round id, preserve the supplied outcome
   direction; do not reverse a clearly positive fallback into a negative result
   or vice versa.
-- When choice_id is "custom-response", assess the player's wording and intent
+- When player_action.input_kind is "free", or choice_id is a legacy
+  "custom-response" / "custom-round-*" id, assess the player's wording and intent
   independently. The fallback is deliberately neutral and must not constrain
   your score direction.
 - task_progress is 0-100 and measures how close the practical conversation is

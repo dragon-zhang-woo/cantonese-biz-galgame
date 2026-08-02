@@ -1,0 +1,92 @@
+[
+  {
+    "id": "cross-team-follow-up",
+    "description": "跨部门同事承诺今天交付数据，但快下班还没有回复，我需要礼貌催进度并确认负责人和时间。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "跨部门伙伴", "channel": "即时消息", "channelConfidence": "low", "focus": "催进度"}
+  },
+  {
+    "id": "explicit-email-follow-up",
+    "description": "客户一直没有回复邮件，我需要礼貌跟进确认周五前的负责人。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "客户", "channel": "邮件", "channelConfidence": "high", "focus": "催进度"}
+  },
+  {
+    "id": "manager-priority",
+    "description": "直属经理同时给我两件急事，今天只能先做一件，需要协商优先级。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "上司", "channel": "当面", "channelConfidence": "low", "focus": "优先级协商"}
+  },
+  {
+    "id": "client-video-scope",
+    "description": "客户在视频会议临时加需求但不加预算，我要说明范围外影响。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "客户", "channel": "视频会议", "channelConfidence": "high", "focus": "范围控制"}
+  },
+  {
+    "id": "mentor-ambiguous",
+    "description": "导师只说尽快做一份方案，我不知道交付什么格式和截止时间。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "带教经理", "channel": "当面", "channelConfidence": "low", "focus": "任务澄清"}
+  },
+  {
+    "id": "delivery-risk-call",
+    "description": "我需要打电话告诉经理交付延期，说明影响、负责人和下一次更新时间。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "上司", "channel": "电话", "channelConfidence": "high", "focus": "风险汇报"}
+  },
+  {
+    "id": "executive-brief",
+    "description": "我要在会议向客户高层做一分钟汇报，只讲结论、依据、风险和下一步。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "客户", "channel": "会议", "channelConfidence": "medium", "focus": "高层汇报"}
+  },
+  {
+    "id": "privacy-boundary",
+    "description": "同事通过邮件索取员工名单和身份证号码，我要先确认用途和授权范围。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "同事", "channel": "邮件", "channelConfidence": "high", "focus": "资料边界"}
+  },
+  {
+    "id": "workplace-disagreement",
+    "description": "我需要在例会上礼貌表达不同意，避免和团队成员当场争论。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "同事", "channel": "会议", "channelConfidence": "medium", "focus": "表达异议"}
+  },
+  {
+    "id": "informal-manager-repair",
+    "description": "我想在午饭时和直属经理讨论一次敏感反馈，修复最近的合作关系。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "上司", "channel": "非正式会面", "channelConfidence": "high", "focus": "表达异议"}
+  },
+  {
+    "id": "explicit-overrides",
+    "description": "经理要求我交代项目风险，但我实际要练习向客户在视频会议控制范围。",
+    "preferences": {"relation": "客户", "channel": "视频会议", "focus": "范围控制"},
+    "expected": {"relation": "客户", "channel": "视频会议", "channelConfidence": "high", "focus": "范围控制"}
+  },
+  {
+    "id": "cross-team-beats-colleague",
+    "description": "跨部门同事在群里反对方案，我要表达异议并给出替代建议。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "跨部门伙伴", "channel": "即时消息", "channelConfidence": "high", "focus": "表达异议"}
+  },
+  {
+    "id": "soft-promise-follow-up",
+    "description": "其他部门说得闲会处理，但一直没回复，我想确认具体负责人和完成时间。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "跨部门伙伴", "channel": "即时消息", "channelConfidence": "low", "focus": "催进度"}
+  },
+  {
+    "id": "client-scope-by-email",
+    "description": "甲方通过电邮要求免费增加一项范围外工作，我要给出两个取舍方案。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "客户", "channel": "邮件", "channelConfidence": "high", "focus": "范围控制"}
+  },
+  {
+    "id": "generic-conflict-fallback",
+    "description": "团队成员认为当前做法不合理，我需要说明担心并提出一个可以复核的替代方案。",
+    "preferences": {"relation": "自动", "channel": "自动", "focus": "自动"},
+    "expected": {"relation": "同事", "channel": "会议", "channelConfidence": "low", "focus": "表达异议"}
+  }
+]

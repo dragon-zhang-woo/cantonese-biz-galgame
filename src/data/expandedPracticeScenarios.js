@@ -1,4 +1,4 @@
-const asset = (name) => `/assets/${name}`;
+const asset = (name) => `${import.meta.env.BASE_URL}assets/${name}`;
 
 const neutralFallback = (speaker) => ({
   responseYue: `${speaker}点点头，示意你再讲具体少少。`,

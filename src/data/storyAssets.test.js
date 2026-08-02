@@ -4,6 +4,7 @@ import path from "node:path";
 import { customSceneImages } from "./customSceneAssets.js";
 import { practiceScenarios } from "./practiceScenarios.js";
 import { scenes } from "./scenes.js";
+import { judgeShowcaseSteps } from "./judgeShowcase.js";
 import {
   characterDossiers,
   cinematicImages,
@@ -43,6 +44,9 @@ describe("cinematic story assets", () => {
         ...scenes.map((scene) => scene.background.split("/").at(-1)),
         ...practiceScenarios.map((scene) => scene.background.split("/").at(-1)),
         ...customSceneImages.map((image) => image.split("/").at(-1)),
+        ...judgeShowcaseSteps
+          .map((step) => step.positiveAsset?.split("/").at(-1))
+          .filter(Boolean),
         ...cinematicImages.map((image) => image.split("/").at(-1)),
       ]),
     ].sort();

@@ -1,87 +1,80 @@
-# Firebird Hackathon submission draft
+# 火鸟黑客松作品提交稿
 
-## Project name
+提交截止：2026 年 8 月 3 日 23:59（北京时间 UTC+8）
+提交入口：https://ustxai.hk/#page-submit
+
+## 一、待队伍确认的信息
+
+以下内容涉及证书与联系信息，提交前必须由队长逐项核对：
+
+- 队伍名称：`待填写`
+- 队长姓名：`待填写`
+- 联系邮箱：`待填写`
+- 队长手机号：`待填写`
+- 全部团队成员证书姓名（含队长、逗号分隔）：`待填写`
+
+## 二、可直接复制的项目信息
+
+### 项目名称
 
 粤商通 CantoneseBiz
 
-## One-line pitch
+### 参赛赛道
 
-在香港职场真实关系中练习商务粤语的 AI 互动视觉小说：玩家的每句
-回应都会改变人物信任，并由 AI 解释语言正确性与社会效果的差异。
+开放赛道
 
-## Target users
+### 一句话简介
 
-- 初次赴港工作的普通话母语者；
-- 大湾区高校中准备赴港实习或求职的非粤语母语学生；
-- 需要香港文化与沟通 onboarding 的企业团队。
+在香港职场真实关系中练习商务粤语的 AI 互动视觉小说，让每次回应都产生可见的人物、任务与关系后果。
 
-## Core problem
+### 项目简介（300 字以内）
 
-语言学习工具通常训练词汇、语法与发音，却无法低风险地复现客户
-谈判、同事试探和经理反馈中的关系压力。用户可能“每个字都说对了”，
-仍因语气、责任边界或隐含含义误判而失去信任。
+粤商通是一款面向赴港工作者、实习生与企业新员工的 AI 商务粤语互动视觉小说。玩家在五幕主线、12 项专题训练和自定义现实情境中，用选择、键盘或录音回应香港职场难题；DeepSeek 推演人物反应与关系后果，港话通校正粤语自然度、礼貌度和商务适配。程序控制故事节点、分数边界和离线回退，现实情境先脱敏，训练存档不保存原始回答。即使模型或网络不可用，评委仍可完整体验三分钟精选演示。
 
-## Solution
+### 在线体验链接
 
-一个保留五幕竞赛主线、同时提供七个实用训练任务的 AI Galgame：
+`https://dragon-zhang-woo.github.io/cantonese-biz-galgame/`
 
-1. 玩家进入香港本地商务场景；
-2. 从策略选项中选择，或直接写出自己的回应；
-3. NPC 根据人物利益与玩家状态即时回应；
-4. 程序更新关系数值，并用人物反应与剧情证据镜头展示现场后果；
-5. AI 教练解释社会语用后果；
-6. 单项训练给出可直接复用的现实职场句式；
-7. 主线结局形成个人学习画像，训练库记录各项最佳成绩。
+GitHub Pages 提供可直接试用的公开桌面版；核心路径完全离线，受限后端未配置或额度耗尽时自动使用本地回退。
 
-## Innovation
+## 三、代码提交
 
-- 用“关系后果”而不是背词驱动语言学习；
-- 把 Galgame 的角色记忆与商务情境训练结合；
-- 用 33 张幕前、反应、特写、角色锚点和训练场景资产把语境变化导演成可见的故事，
-  而不是只显示一个分数；
-- 四名主要 NPC 在主线与训练库中各有至少三次可玩互动，覆盖任务澄清、
-  优先级、坏消息、关系建立、跟进、范围控制和高层汇报；
-- 每项训练都显式建模“实际任务—隐藏关系风险—可迁移模板”，让 AI 反馈
-  评估是否完成工作，而不只是粤语是否自然；
-- 允许评委现场自由作答，再由两个模型分别负责剧情反应和香港语境
-  纠偏；
-- 将可生成内容限制在角色表演和教练解释，故事图保持确定；
-- AI / 离线双模式，现场可稳定运行。
+- 公开仓库：https://github.com/dragon-zhang-woo/cantonese-biz-galgame
+- 稳定分支：`main`
+- 当前发布候选：`feature/github-pages-public-demo`（目标 `develop`，验收后提升至 `main`）
+- Release：https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases/tag/v1.0.0
 
-## AI implementation
+提交前应确认评委需要查看的最新功能已经进入公开分支；不要只提交本机分支名称。
 
-- DeepSeek V4 Pro：结构化 NPC 反应与受约束的分数变化；
-- HKGAI V3（港话通）：香港商务粤语自然度、礼貌度与语境纠偏；
-- JSON Output + Pydantic：字段和分数边界验证；
-- 语义防线：拒绝把原问题重复为 NPC 新反应的异常输出；
-- Provider abstraction：可插入 HKGAI Studio 文本/语音模型；
-- browser SpeechSynthesis：可选粤语朗读；
-- Mock Provider：API、额度或网络失败时无缝降级。
+## 四、产品与技术要点
 
-## Demo completeness
+- 五幕确定性主线、12 项专题训练、3–6 轮自定义情境训练；
+- 3 分钟评委演示覆盖主线、训练库、可编辑预置现实情境、第四幕后果对比与复盘，零网络、零存档污染；
+- DeepSeek V4 Pro 负责受约束的 NPC 反应、任务推进与关系后果；
+- 港话通 HKGAI V3 负责自然度、礼貌度、商务适配与港式改写；
+- 港话通 Speech 文件识别可把录音转成可编辑文字；语音不是桌面提交流程的必需条件；
+- JSON Output、Pydantic 与规则引擎限制字段、分数和故事节点；
+- 双模型可以独立降级，标准主线、训练与评委演示可离线运行；
+- 公开版模型预算默认关闭；接入受保护后端时使用 ¥5 总预算、100 回合全站上限与每客户端 5 回合上限；
+- 自定义情境先在浏览器脱敏，主线存档不保存原始描述或自由回答；
+- 桌面端已在 1440×1024 与 1920×1080 目标尺寸进行提交前验收。
 
-- five original main scenes plus 33 cinematic, character and practice assets;
-- seven standalone practical scenarios with task goals, hidden relationship
-  risks, local completion records and reusable workplace templates;
-- one complete start-to-ending path;
-- constrained free-form answers plus a deterministic offline path;
-- local checkpoint restore without storing raw player wording;
-- responsive web UI;
-- automated frontend/backend tests;
-- Docker deployment;
-- asset and third-party license ledgers.
+## 五、评审价值
 
-## Human–AI boundary
+普通语言工具主要判断“说得对不对”；粤商通进一步训练用户在不同权力关系、沟通渠道与时间压力下，是否真正澄清任务、承担责任、维护关系并形成可验证的下一步。Galgame 的人物反应和关系数值把抽象的社会语用后果变成低风险、可重复练习的现场反馈。
 
-AI provides contextual rehearsal, not authoritative judgments about Hong Kong
-people or one universally correct communication style. The system does not
-make employment decisions, store personal conversations or provide
-professional advice.
+## 六、人机边界
 
-## Development potential
+AI 提供情境化语言训练，不代表香港职场存在唯一正确表达，也不用于招聘、绩效或其他雇佣决策。故事图、分数边界、失败回退和存档策略由程序控制；模型不可用时不会阻断核心训练。
 
-- B2C scenario packs for job seekers;
-- enterprise onboarding and role-specific training;
-- university career-center programs;
-- HKGAI speech integration for pronunciation and code-switching feedback;
-- authoring tools for HR trainers to create private scenarios.
+## 七、必交文件状态
+
+| 材料 | 当前状态 | 提交前动作 |
+| --- | --- | --- |
+| 队伍与联系方式 | 缺少 | 队长填写并核对证书姓名 |
+| 项目信息 | 已起草 | 在表单预览中核对 300 字限制 |
+| 代码 | 公开仓库可用 | 确认提交分支包含最终功能 |
+| 路演 PPTX | 已完成 | 9 页，已渲染复验且无溢出 |
+| Demo 视频 | 已有原始录屏 | 按桌面横版脚本剪至 3 分钟并确认 H.264 |
+| 视频封面 | 可选、缺少 | 可从演示关键镜头制作 16:9 封面 |
+| 宣传海报 | 可选 | 若 8 月 8 日线下到场可由组委会制作 |
