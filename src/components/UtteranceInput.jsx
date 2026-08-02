@@ -328,7 +328,7 @@ export function UtteranceInput({
       const Context = window.AudioContext || window.webkitAudioContext;
       const context = new Context();
       audioContext.current = context;
-      await context.audioWorklet.addModule("/audio-pcm-worklet.js");
+      await context.audioWorklet.addModule(`${import.meta.env.BASE_URL}audio-pcm-worklet.js`);
       const source = context.createMediaStreamSource(stream);
       const node = new AudioWorkletNode(context, "cantonese-biz-pcm");
       const silent = context.createGain();

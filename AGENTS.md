@@ -58,3 +58,4 @@ When implementing from a selected generated mock, treat that image as the source
 - Use `develop` as the ongoing integration and development branch.
 - Keep `main` as the stable competition-submission and public-deployment branch.
 - Base future feature branches on `develop`, then promote verified release-ready work from `develop` to `main`.
+- The public GitHub Pages build must remain fully usable without a backend and must never default to localhost or expose provider keys. Optional cloud enhancement requires an explicit HTTPS `PUBLIC_API_BASE_URL` and a server-side ¥5 total budget guard, with local fallback after exhaustion.

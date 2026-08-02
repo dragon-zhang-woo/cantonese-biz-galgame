@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+import { runtimeConfig } from "./runtimeConfig.js";
 
 export const DEFAULT_SPEECH_CAPABILITIES = {
   configured: false,
@@ -23,8 +23,10 @@ export const DEFAULT_SPEECH_CAPABILITIES = {
 };
 
 export async function getSpeechCapabilities() {
+  if (!runtimeConfig.remoteApiEnabled) return DEFAULT_SPEECH_CAPABILITIES;
+
   try {
-    const response = await fetch(`${API_BASE}/api/speech/capabilities`);
+    const response = await fetch(`${runtimeConfig.apiBase}/api/speech/capabilities`);
     if (!response.ok) return DEFAULT_SPEECH_CAPABILITIES;
     const payload = await response.json();
     return {
@@ -48,11 +50,18 @@ export async function getSpeechCapabilities() {
 }
 
 export async function transcribeAudio(audio, scope, languageHint = "yue-HK") {
+  if (!runtimeConfig.remoteApiEnabled) {
+    const error = new Error("公开演示版未连接云端转写；录音仍可在本机回放和下载。");
+    error.code = "speech_not_configured";
+    error.recoverable = true;
+    throw error;
+  }
+
   const form = new FormData();
   form.append("audio", audio, "anonymous-training-audio");
   form.append("scope", scope);
   form.append("language_hint", languageHint);
-  const response = await fetch(`${API_BASE}/api/speech/transcriptions`, {
+  const response = await fetch(`${runtimeConfig.apiBase}/api/speech/transcriptions`, {
     method: "POST",
     body: form,
   });
@@ -79,7 +88,10 @@ export async function transcribeAudio(audio, scope, languageHint = "yue-HK") {
 }
 
 export function createLiveSpeechSocket() {
-  const target = new URL(API_BASE, window.location.href);
+  if (!runtimeConfig.remoteApiEnabled) {
+    throw new Error("公开演示版未连接实时语音服务。");
+  }
+  const target = new URL(runtimeConfig.apiBase, window.location.href);
   target.protocol = target.protocol === "https:" ? "wss:" : "ws:";
   target.pathname = `${target.pathname.replace(/\/$/, "")}/api/speech/transcriptions/live`;
   target.search = "";

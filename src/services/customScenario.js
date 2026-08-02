@@ -3,8 +3,7 @@ import { getCustomSceneImage } from "../data/customSceneAssets.js";
 import { getPracticeScenario } from "../data/practiceScenarios.js";
 import skillCards from "../../backend/data/skill_cards.json";
 import { getPersona, inferScenario } from "./scenarioInference.js";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+import { runtimeConfig } from "./runtimeConfig.js";
 
 export const CUSTOM_SCENARIO_MIN_LENGTH = 20;
 export const CUSTOM_SCENARIO_MAX_LENGTH = 1000;
@@ -181,6 +180,9 @@ function localCompose(description, pressure, rounds, redaction, preferences) {
 
 function mapScenario(payload, clientRedaction) {
   const serverRedaction = payload.redaction ?? { count: 0, categories: [] };
+  const compatibleBackground = payload.background?.startsWith("/assets/")
+    ? `${import.meta.env.BASE_URL}${payload.background.slice(1)}`
+    : payload.background;
   return {
     id: payload.id,
     title: payload.title,
@@ -196,7 +198,8 @@ function mapScenario(payload, clientRedaction) {
     transferTemplate: payload.transfer_template,
     fallbackScenarioId: payload.fallback_scenario_id,
     visualSceneId: payload.visual_scene_id,
-    background: payload.background,
+    background:
+      getCustomSceneImage(payload.visual_scene_id) ?? compatibleBackground,
     redactedDescription: payload.redacted_description,
     redaction: {
       count: clientRedaction.count + serverRedaction.count,
@@ -254,10 +257,23 @@ export async function composeCustomScenario({
     throw new Error(`请至少输入 ${CUSTOM_SCENARIO_MIN_LENGTH} 个字。`);
   }
 
+  if (!runtimeConfig.remoteApiEnabled) {
+    return localCompose(
+      sanitized.text,
+      pressure,
+      rounds,
+      {
+        count: sanitized.count,
+        categories: sanitized.categories,
+      },
+      { relation, channel, focus },
+    );
+  }
+
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 18000);
   try {
-    const response = await fetch(`${API_BASE}/api/scenario/compose`, {
+    const response = await fetch(`${runtimeConfig.apiBase}/api/scenario/compose`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,

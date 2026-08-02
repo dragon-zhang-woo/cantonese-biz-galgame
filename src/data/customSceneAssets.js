@@ -1,4 +1,4 @@
-const asset = (name) => `/assets/${name}`;
+const asset = (name) => `${import.meta.env.BASE_URL}assets/${name}`;
 
 export const customSceneAssets = [
   {

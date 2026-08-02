@@ -55,6 +55,7 @@ import {
   recordPracticeResult,
 } from "./services/practiceStore.js";
 import { evaluateBehavior } from "./services/behaviorRubric.js";
+import { runtimeConfig } from "./services/runtimeConfig.js";
 
 const statusMeta = {
   trust: { label: "信任", Icon: Handshake },
@@ -96,15 +97,22 @@ function ScorePill({ name, value, compact = false }) {
 
 function ModeToggle({ mode, onChange }) {
   const isAi = mode === "ai";
+  const isOfflinePublicDemo =
+    runtimeConfig.publicDemoMode && !runtimeConfig.remoteApiEnabled;
+  const label = isOfflinePublicDemo
+    ? "公开演示 · 离线"
+    : isAi
+      ? "AI 即兴"
+      : "标准剧情";
   return (
     <button
       className="mode-toggle"
       type="button"
       onClick={() => onChange(isAi ? "story" : "ai")}
-      aria-label={`当前为${isAi ? "AI 即兴" : "标准剧情"}模式，点击切换`}
+      aria-label={`当前为${label}模式，点击切换`}
     >
       {isAi ? <Cloud weight="duotone" /> : <CloudSlash weight="duotone" />}
-      <span>{isAi ? "AI 即兴" : "标准剧情"}</span>
+      <span>{label}</span>
       <i aria-hidden="true" />
     </button>
   );
@@ -378,6 +386,14 @@ function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resu
           <Brain weight="duotone" aria-hidden="true" />
           <span>AI 分析语境与关系后果；剧情控制始终由规则引擎掌握。</span>
         </div>
+        {runtimeConfig.publicDemoMode && (
+          <div className="public-demo-note" role="status">
+            <CloudSlash weight="duotone" aria-hidden="true" />
+            <span>
+              公开体验默认零消耗；自由输入仅在受限云端额度可用时增强，额度耗尽会自动离线回退。
+            </span>
+          </div>
+        )}
         <div className="intro-entry-grid">
           <button className="intro-entry intro-entry--story" type="button" onClick={onStart}>
             <FilmStrip weight="duotone" aria-hidden="true" />
@@ -402,7 +418,11 @@ function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resu
             <span>
               <small>我的现实情境</small>
               <strong>把正在面对的困难拿来练</strong>
-              <em>先脱敏 · 3–6 轮双模型连续反馈</em>
+              <em>
+                {runtimeConfig.remoteApiEnabled
+                  ? "先脱敏 · 3–6 轮双模型连续反馈"
+                  : "先脱敏 · 3–6 轮离线连续训练"}
+              </em>
             </span>
             <ArrowRight weight="bold" aria-hidden="true" />
           </button>

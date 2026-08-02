@@ -25,6 +25,7 @@ import {
 } from "../services/customScenario.js";
 import { canSubmitFreeResponse } from "../services/freeResponse.js";
 import { requestAiTurn } from "../services/gameApi.js";
+import { runtimeConfig } from "../services/runtimeConfig.js";
 import { UtteranceInput } from "./UtteranceInput.jsx";
 
 const pressureLevels = ["温和", "直接", "高压"];
@@ -307,7 +308,11 @@ function Prepared({
           <i className="is-source">{sourceLabel}</i>
           <i>{scenario.pressure}压力</i>
           <i>建议 {scenario.rounds.length} 轮 · 两轮后可收口</i>
-          <i>训练回合将尝试 DeepSeek 与港话通，失败时独立回退</i>
+          <i>
+            {runtimeConfig.remoteApiEnabled
+              ? "训练回合将尝试 DeepSeek 与港话通，失败时独立回退"
+              : "公开演示使用本地回退；键盘、录音和完整训练流程保持可用"}
+          </i>
         </div>
       </div>
 
@@ -543,8 +548,14 @@ function Training({
             </div>
             {isLoading && (
               <div className="custom-model-live" role="status">
-                <span><i /> DeepSeek 正在延续角色反应</span>
-                <span><i /> 港话通正在检查自然度与商务语气</span>
+                {runtimeConfig.remoteApiEnabled ? (
+                  <>
+                    <span><i /> DeepSeek 正在延续角色反应</span>
+                    <span><i /> 港话通正在检查自然度与商务语气</span>
+                  </>
+                ) : (
+                  <span><i /> 正在生成可靠的本地训练反馈</span>
+                )}
               </div>
             )}
             <button
@@ -553,7 +564,11 @@ function Training({
               disabled={!canSubmitFreeResponse(value) || value.length > 320 || isLoading}
             >
               <PaperPlaneTilt weight="fill" />
-              {isLoading ? "双模型正在并行回应…" : "提交本轮回应"}
+              {isLoading
+                ? runtimeConfig.remoteApiEnabled
+                  ? "双模型正在并行回应…"
+                  : "正在生成本地反馈…"
+                : "提交本轮回应"}
             </button>
           </form>
         )}

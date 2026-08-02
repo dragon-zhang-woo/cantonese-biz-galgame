@@ -24,6 +24,7 @@ from app.models.schemas import (
 )
 from app.services.game_engine import GameEngine
 from app.services.scenario_composer import compose_scenario
+from app.services.public_budget import PublicApiBudget, PublicBudgetExhausted
 from app.services.speech import SpeechAdapter, SpeechModuleError, SpeechTranscriptionModule
 
 
@@ -46,6 +47,7 @@ def create_app(
     )
     engine = GameEngine(config)
     speech = SpeechTranscriptionModule(config, speech_adapter)
+    public_budget = PublicApiBudget(config)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -59,10 +61,35 @@ def create_app(
 
     @app.post("/api/game/turn", response_model=TurnResponse)
     async def turn(
+        http_request: Request,
         request: TurnRequest,
         game_engine: GameEngine = Depends(get_engine),
     ) -> TurnResponse:
+        client_key = http_request.client.host if http_request.client else "unknown"
+        try:
+            await public_budget.reserve(client_key)
+        except PublicBudgetExhausted as exc:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "code": "public_budget_exhausted",
+                    "message": "公开演示的云端增强额度已用完，请继续使用离线训练。",
+                    "recoverable": True,
+                },
+            ) from exc
         return await game_engine.play_turn(request)
+
+    @app.get("/api/public/quota")
+    async def public_quota() -> dict[str, bool | float | int | None]:
+        snapshot = await public_budget.snapshot()
+        return {
+            "enabled": snapshot.enabled,
+            "budget_cny": snapshot.budget_cny,
+            "estimated_turn_cost_cny": snapshot.estimated_turn_cost_cny,
+            "used_turns": snapshot.used_turns,
+            "remaining_turns": snapshot.remaining_turns,
+            "per_client_turn_limit": snapshot.per_client_turn_limit,
+        }
 
     @app.post("/api/scenario/compose", response_model=ComposedScenario)
     async def scenario_compose(request: ScenarioComposeRequest) -> ComposedScenario:
