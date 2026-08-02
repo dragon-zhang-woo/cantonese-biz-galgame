@@ -22,10 +22,10 @@ Web Speech 路径，港话通服务端流式 ASR 仍不在范围内。
 
 ## 自动验证
 
-- 前端：63 项 Vitest 测试通过；
+- 前端：65 项 Vitest 测试通过；
 - ESLint：通过；
 - Vite production build：通过；
-- 后端：隔离 `.venv` 中 68 项 Pytest 测试通过；
+- 后端：隔离 `.venv` 中 71 项 Pytest 测试通过；
 - 路演 PPTX：9 页，逐页渲染检查通过，`slides_test.py` 无溢出。
 
 ## 语音稳定性复验
@@ -53,6 +53,16 @@ Web Speech 路径，港话通服务端流式 ASR 仍不在范围内。
   流式 complete 后只采用一次转写，组件卸载会取消延迟文件转写。
 - 后端回归确认：没有取得并发槽的被拒请求不会调用 `release`，不会破坏同一
   客户端两个正在执行的语音任务。
+
+## GitHub Pages 子路径验收
+
+- 使用与 Pages 相同的 `/cantonese-biz-galgame/` 子路径提供生产构建，而不是
+  依赖开发服务器的根路径回退；
+- 1920×1080 完整跑通五段评委演示，1440×1024 跑通现实情境离线编排；
+- 剧情、训练库、自定义情境与演示后果图均从 Pages 子路径正确加载；
+- 公开版未配置 `PUBLIC_API_BASE_URL` 时不会请求 `/api`，控制台 0 error、
+  0 warning，localStorage 与 sessionStorage 均保持为空；
+- 公开额度耗尽或云端不可用时继续使用本地编排和离线反馈，不阻断演示。
 
 ## 录制前人工检查
 

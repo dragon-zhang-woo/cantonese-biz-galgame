@@ -2935,6 +2935,25 @@ button:focus-visible {
   font-size: 18px;
 }
 
+.public-demo-note {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(106, 223, 231, 0.24);
+  border-radius: 0.8rem;
+  color: #b9eaf0;
+  background: rgba(5, 11, 24, 0.68);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.public-demo-note svg {
+  flex: 0 0 auto;
+  color: #6adfe7;
+  font-size: 1.15rem;
+}
+
 .showcase-module {
   display: grid;
   grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);

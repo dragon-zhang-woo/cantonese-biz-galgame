@@ -5,11 +5,9 @@
 ## 当前状态
 
 - 代码库：`D:\火鸟黑客松竞赛\粤商通 Galgame`
-- 稳定基线：`develop` 的 `f34a7e1`；PR #17 已合并。
-- 当前开发分支：`feature/voice-input-v1`。
-- PR #18 已合并；语音输入增量位于草稿
-  [PR #19](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pull/19)，
-  目标分支 `develop`，当前可合并且 CI 通过。
+- 稳定基线：`origin/develop` 的 `34f0054`；PR #19 已合并。
+- 当前开发分支：`feature/github-pages-public-demo`。
+- 正在为 `main` 增加 GitHub Pages 公开部署、显式 API 配置和公开额度保护。
 - 项目是 2026 火鸟 AI 黑客松开放赛道作品：以香港职场关系后果驱动的
   商务粤语 AI 视觉小说与训练平台。
 
@@ -115,6 +113,19 @@
   短句做一次真实麦克风准确率校准。
 - 9 页路演 PPTX 已生成并逐页渲染检查，`slides_test.py` 报告无溢出；
   三分钟横版视频镜头单已改为直接跟随五段评委演示录制。
+
+## 公开部署与额度决策
+
+- GitHub Pages 构建只在 `VITE_DEPLOY_TARGET=github-pages` 时使用仓库子路径，
+  不再让普通 CI/Release 因 `GITHUB_ACTIONS=true` 误用 Pages base。
+- 公开页面没有显式 `VITE_API_BASE_URL` 时不发模型、编排或港话通 Speech 后端
+  请求，也不会尝试访问评委电脑的 `localhost:8000`；主线、训练、自定义规则
+  编排、评委导览、键盘输入、本机录音和浏览器实时字幕仍可使用。
+- 可选公开后端预算为 ¥5，总计保守预留 100 个双模型回合，每个匿名客户端
+  最多 5 回合；SQLite 只持久化哈希客户端标识和计数。模型账户仍须使用单独的
+  小额余额作为最终账单止损，语音转写不纳入公开额度。
+- 三分钟 Demo 成片只录产品界面，不插入 PPT、代码或终端；AI 边界直接使用
+  第五段学习报告和演示模块内的零网络/零存档说明。
 
 ## 关键入口
 

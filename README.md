@@ -7,6 +7,7 @@
 **在香港职场真实关系中练习商务粤语的 AI 互动视觉小说。**
 
 [本地运行](#本地运行) ·
+[在线体验](https://dragon-zhang-woo.github.io/cantonese-biz-galgame/) ·
 [下载 v1.0.0](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/releases/tag/v1.0.0) ·
 [3 分钟演示脚本](docs/demo-script.md) ·
 [参赛说明](PROJECT_SUBMISSION.md)
@@ -18,6 +19,10 @@
 关系变化与可解释复盘，而不是只得到一句语法评分。
 
 本项目是 **2026 火鸟 AI 黑客松开放赛道**的原创可运行作品。
+
+公开体验由 GitHub Pages 托管，核心主线、训练库、自定义情境规则编排和评委
+导览无需后端。只有在仓库变量 `PUBLIC_API_BASE_URL` 明确指向受保护的后端时，
+自由输入才会尝试云端双模型；否则浏览器不会默认请求 `localhost` 或任何模型 API。
 
 ## 三种训练入口
 
@@ -94,6 +99,9 @@ React 19 + Vite 6
 ```
 
 后端通过 Pydantic 验证结构化输出，并为两类模型提供独立降级和短期内存缓存。
+公开后端可启用持久化预算闸门：`PUBLIC_AI_BUDGET_CNY=5`、每次双模型回合
+保守预留 ¥0.05、全站最多 100 回合、每个匿名客户端最多 5 回合。应用层只保存
+哈希客户端标识与计数；生产环境仍应使用单独的小额余额 API 账户作为最终止损。
 详细设计见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 本地运行
@@ -137,6 +145,11 @@ cp .env.example .env
 [`backend/.env.example`](backend/.env.example) 中。前端默认连接
 `http://localhost:8000`；可在根目录 `.env.local` 中通过
 `VITE_API_BASE_URL` 修改。
+
+GitHub Pages 使用 `.github/workflows/pages.yml` 从 `main` 构建。默认公开构建是
+零项目 API 消耗；若已有 HTTPS 后端，在仓库 Actions Variable 中设置
+`PUBLIC_API_BASE_URL` 后重新部署即可启用受限自由输入。不要把任何模型密钥写进
+Vite 环境变量或前端代码。
 
 港话通 [Studio Speech](https://hkgai-studio.prod.hkchat.app/zh-Hans/modelhub/speech)
 已确认文件识别使用 Bearer 鉴权，并以 JSON/Base64 调用

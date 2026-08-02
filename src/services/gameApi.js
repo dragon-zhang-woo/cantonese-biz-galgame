@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+import { runtimeConfig } from "./runtimeConfig.js";
 
 export async function requestAiTurn({
   scene,
@@ -7,11 +7,15 @@ export async function requestAiTurn({
   fallback,
   history = [],
 }) {
+  if (!runtimeConfig.remoteApiEnabled) {
+    return { provider: "fallback", turn: fallback };
+  }
+
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 38000);
 
   try {
-    const response = await fetch(`${API_BASE}/api/game/turn`, {
+    const response = await fetch(`${runtimeConfig.apiBase}/api/game/turn`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,

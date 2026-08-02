@@ -58,7 +58,7 @@ describe("custom scenario privacy", () => {
       pressure: "直接",
       speaker: "阿朗",
       role: "本地项目经理",
-      background: "/assets/custom-ah-long-open-office-v01.png",
+      background: `${import.meta.env.BASE_URL}assets/custom-ah-long-open-office-v01.png`,
       task: "风险汇报与范围控制",
       difficulty: "进阶",
       objective: "说明事实并守住范围",

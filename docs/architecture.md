@@ -89,6 +89,24 @@ transcription is attempted once when available.
 Speech provenance is shown separately from DeepSeek scene provenance and
 HKChat text-review provenance.
 
+## Public deployment and spend guard
+
+GitHub Pages hosts the static application under `/cantonese-biz-galgame/`.
+`VITE_PUBLIC_DEMO_MODE=true` never implies an API endpoint: only an explicit
+HTTPS `VITE_API_BASE_URL` enables remote calls. With no endpoint, turn requests,
+scenario composition and Speech capability checks short-circuit locally, while
+the deterministic game, local inference, keyboard input, recordings and judge
+showcase remain usable.
+
+An optional public FastAPI deployment enables `PUBLIC_AI_BUDGET_CNY=5`.
+`PublicApiBudget` atomically reserves a conservative fixed amount before each
+dual-model turn in SQLite, caps each hashed client at five turns, and exposes
+only aggregate status through `GET /api/public/quota`. It never stores raw IPs,
+prompts or responses. A separate provider account funded with no more than the
+approved amount is still required as the final billing hard stop because an
+application database cannot protect against every platform reset or multi-
+instance misconfiguration.
+
 ## Trust boundaries
 
 - API keys live only in `backend/.env`.

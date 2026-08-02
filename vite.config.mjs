@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   base:
-    process.env.GITHUB_ACTIONS === "true"
+    process.env.VITE_DEPLOY_TARGET === "github-pages"
       ? "/cantonese-biz-galgame/"
       : "/",
   optimizeDeps: {
