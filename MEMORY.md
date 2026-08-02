@@ -5,9 +5,12 @@
 ## 当前状态
 
 - 代码库：`D:\火鸟黑客松竞赛\粤商通 Galgame`
-- 稳定基线：`origin/develop` 的 `34f0054`；PR #19 已合并。
-- 当前开发分支：`feature/github-pages-public-demo`。
-- 正在为 `main` 增加 GitHub Pages 公开部署、显式 API 配置和公开额度保护。
+- 稳定发布：`origin/main` 的 `6e872b2`；PR #20 已合入 `develop`，PR #21
+  已提升至 `main`。
+- 在线体验：`https://dragon-zhang-woo.github.io/cantonese-biz-galgame/`；
+  GitHub Pages 使用 Actions workflow 构建并强制 HTTPS。
+- 公开版已经完成 1440×1024 真实线上浏览器验收：五段评委演示完整通过，
+  控制台 0 error/0 warning、无 API 请求、无横向溢出、存储保持为空。
 - 项目是 2026 火鸟 AI 黑客松开放赛道作品：以香港职场关系后果驱动的
   商务粤语 AI 视觉小说与训练平台。
 
