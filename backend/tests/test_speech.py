@@ -645,6 +645,42 @@ def test_upload_resource_is_closed_after_a_failed_request(monkeypatch) -> None:
     assert set(closed_filenames) == {"private-name.wav"}
 
 
+def test_rejected_http_request_does_not_release_an_unacquired_slot(monkeypatch) -> None:
+    release_calls: list[str] = []
+
+    async def reject_acquire(self, client_key: str) -> None:
+        raise SpeechModuleError(
+            "too_many_concurrent",
+            "同一客户端最多同时处理两段录音。",
+            429,
+            True,
+        )
+
+    async def track_release(self, client_key: str) -> None:
+        release_calls.append(client_key)
+
+    monkeypatch.setattr(SpeechTranscriptionModule, "acquire", reject_acquire)
+    monkeypatch.setattr(SpeechTranscriptionModule, "release", track_release)
+    client = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="https://speech.example.test/transcribe",
+            )
+        )
+    )
+
+    response = client.post(
+        "/api/speech/transcriptions",
+        data={"scope": "campaign-turn", "language_hint": "auto"},
+        files={"audio": ("anonymous.wav", _wav_bytes(), "audio/wav")},
+    )
+
+    assert response.status_code == 429
+    assert response.json()["detail"]["code"] == "too_many_concurrent"
+    assert release_calls == []
+
+
 @pytest.mark.asyncio
 async def test_client_speech_limits_isolate_concurrency_and_start_rate() -> None:
     module = SpeechTranscriptionModule(Settings())

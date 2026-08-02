@@ -21,8 +21,26 @@
 
 ## 自动验证
 
-- 前端：57 项 Vitest 测试通过；
+- 前端：58 项 Vitest 测试通过；
 - ESLint：通过；
 - Vite production build：通过；
-- 后端：隔离 `.venv` 中 67 项 Pytest 测试通过；
+- 后端：隔离 `.venv` 中 68 项 Pytest 测试通过；
 - 路演 PPTX：9 页，逐页渲染检查通过，`slides_test.py` 无溢出。
+
+## 语音稳定性复验
+
+复验时间：2026-08-02，修复上传匿名化、并发槽释放与流式完成稿竞态后。
+
+- 官方 HKGAI Studio Speech 页面确认语音识别和会议转录均为 HTTP 接口；
+  唯一公开 WebSocket 是 TTS，因此能力探测继续如实返回
+  `upload_supported=true`、`live_supported=false`。
+- 自定义情境描述、训练库自由回应和自定义逐轮回应均显示统一的“语音输入、
+  上传录音、本机录音”工具；训练库搜索层的语音工具数量为 0。
+- 自定义样例在实际浏览器继续识别为“跨部门伙伴＋催进度”，渠道低置信度
+  显示“请确认”，且可进入第 1 轮语音回应区。
+- 1920×1080 与 1440×1024 的 `body.scrollWidth`、
+  `documentElement.scrollWidth` 均等于视口宽度；控制台 0 error、0 warning。
+- 上传组件测试确认 IndexedDB 接收匿名 `Blob` 而不是带原始文件名的 `File`；
+  流式 complete 后只采用一次转写，组件卸载会取消延迟文件转写。
+- 后端回归确认：没有取得并发槽的被拒请求不会调用 `release`，不会破坏同一
+  客户端两个正在执行的语音任务。

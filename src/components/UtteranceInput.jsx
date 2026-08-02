@@ -143,10 +143,12 @@ export function UtteranceInput({
   const audioContext = useRef(null);
   const audioNode = useRef(null);
   const recordingTimer = useRef(null);
+  const postStopTimer = useRef(null);
   const recordingStartedAt = useRef(0);
   const finalTranscript = useRef("");
   const transcriptAccumulator = useRef(createTranscriptAccumulator());
   const liveComplete = useRef(false);
+  const liveTranscriptAdopted = useRef(false);
   const valueRef = useRef(value);
 
   valueRef.current = value;
@@ -187,6 +189,7 @@ export function UtteranceInput({
   useEffect(
     () => () => {
       window.clearInterval(recordingTimer.current);
+      window.clearTimeout(postStopTimer.current);
       liveSocket.current?.close();
       audioNode.current?.disconnect();
       audioContext.current?.close();
@@ -286,9 +289,18 @@ export function UtteranceInput({
       return;
     }
     setPhase("saving");
-    const anonymousBlob = file.type === mimeType ? file : new Blob([file], { type: mimeType });
+    // Always strip the File wrapper before persistence. A File is also a Blob, but
+    // structured-cloning it into IndexedDB would retain its original filename.
+    const anonymousBlob = new Blob([file], { type: mimeType });
     const asset = await persistAsset(anonymousBlob, "uploaded");
     await requestTranscription(asset);
+  }
+
+  function adoptLiveTranscript() {
+    if (liveTranscriptAdopted.current || !finalTranscript.current.trim()) return;
+    liveTranscriptAdopted.current = true;
+    offerTranscript(finalTranscript.current);
+    setPhase("ready");
   }
 
   async function connectLiveTranscription(stream) {
@@ -341,8 +353,7 @@ export function UtteranceInput({
         if (accepted?.type === "complete") {
           liveComplete.current = true;
           finalTranscript.current = accepted.transcript;
-          offerTranscript(finalTranscript.current);
-          setPhase("ready");
+          if (mediaRecorder.current?.state !== "recording") adoptLiveTranscript();
           socket.close();
         }
         if (event.type === "error") {
@@ -365,9 +376,11 @@ export function UtteranceInput({
     setInterim("");
     setTranscriptPreview("");
     setPendingTranscript("");
+    window.clearTimeout(postStopTimer.current);
     finalTranscript.current = "";
     transcriptAccumulator.current = createTranscriptAccumulator();
     liveComplete.current = false;
+    liveTranscriptAdopted.current = false;
     setAudioLevel(0);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -385,15 +398,14 @@ export function UtteranceInput({
         });
         const durationMs = Date.now() - recordingStartedAt.current;
         const asset = await persistAsset(blob, "recorded", durationMs);
-        window.setTimeout(() => {
+        postStopTimer.current = window.setTimeout(() => {
           if (
             recordingCompletionAction({
               liveComplete: liveComplete.current,
               transcript: finalTranscript.current,
             }) === "adopt-live"
           ) {
-            offerTranscript(finalTranscript.current);
-            setPhase("ready");
+            adoptLiveTranscript();
           } else {
             liveSocket.current?.close();
             requestTranscription(asset);

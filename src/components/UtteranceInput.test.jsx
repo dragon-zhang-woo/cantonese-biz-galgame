@@ -258,6 +258,10 @@ describe("UtteranceInput recording lifecycle", () => {
     });
 
     expect(await screen.findByText(/文字区已有内容/)).toBeTruthy();
+    const persistedUpload = storeMocks.saveAudioAsset.mock.calls.at(-1)[0];
+    expect(persistedUpload.blob).toBeInstanceOf(Blob);
+    expect(persistedUpload.blob).not.toBeInstanceOf(File);
+    expect(persistedUpload.blob).not.toHaveProperty("name");
     expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(
       "我会先核对影响范围",
     );
@@ -443,5 +447,54 @@ describe("UtteranceInput recording lifecycle", () => {
 
     expect(await screen.findByText(/本机录音库暂时不可用/)).toBeTruthy();
     expect(screen.getByRole("region", { name: "尚未保存的内存录音" })).toBeTruthy();
+  });
+
+  it("adopts a completed live transcript exactly once after recording stops", async () => {
+    const socket = {
+      readyState: WebSocket.OPEN,
+      close: vi.fn(),
+      send: vi.fn(),
+    };
+    speechMocks.getSpeechCapabilities.mockResolvedValue({
+      ...capabilities,
+      configured: true,
+      liveSupported: true,
+      uploadSupported: true,
+    });
+    speechMocks.createLiveSpeechSocket.mockReturnValue(socket);
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    renderInput();
+    await waitFor(() => expect(speechMocks.getSpeechCapabilities).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "语音输入" }));
+    const consent = screen.queryByRole("alertdialog");
+    if (consent) fireEvent.click(screen.getByRole("button", { name: /我明白/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /停止 0s/ }));
+
+    socket.onmessage({
+      data: JSON.stringify({ type: "final", sequence: 1, text: "请确认负责人" }),
+    });
+    socket.onmessage({
+      data: JSON.stringify({
+        type: "complete",
+        transcript: "请确认负责人",
+        source: "hkchat-speech",
+      }),
+    });
+
+    expect(await screen.findByDisplayValue("请确认负责人")).toBeTruthy();
+    await new Promise((resolve) => window.setTimeout(resolve, 1300));
+    expect(screen.queryByText(/文字区已有内容/)).toBeNull();
+    expect(screen.getByRole("textbox", { name: "你的回应" }).value).toBe(
+      "请确认负责人",
+    );
+    expect(speechMocks.transcribeAudio).not.toHaveBeenCalled();
   });
 });
