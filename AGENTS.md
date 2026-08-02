@@ -48,7 +48,8 @@ When implementing from a selected generated mock, treat that image as the source
 - Speech audio is retained only in the dedicated browser IndexedDB, capped at the newest 20 assets and 30 days. Never put audio, transcripts, original filenames or model results in campaign/training storage, `localStorage` or `TurnCache`.
 - HKChat Speech produces editable transcripts; only explicit learner submission sends text through the existing DeepSeek NPC + HKChat text-review turn. Keep all three provenance labels separate.
 - Custom-scenario audio must disclose that it reaches HKChat Speech before browser text redaction. Keyboard input and deterministic offline training remain available whenever microphone, HTTPS, permissions or the speech provider are unavailable.
-- Do not infer the HKChat Speech protocol from a public base host. Enable upload or live capabilities only with explicit organiser-supplied endpoint and authentication contracts; never emulate live transcription by polling complete-file uploads.
+- HKGAI Studio documents Speech recognition as Bearer-authenticated JSON/Base64 `POST /server_proxy/api/v1/speech_recognize`, returning `data.result`; use that exact contract for file transcription.
+- Studio currently documents a WebSocket only for TTS, not ASR. Keep live transcription disabled until the organiser supplies an explicit streaming-recognition contract; never point live ASR at the TTS socket or emulate streaming by polling complete-file uploads.
 
 ## Durable Repository Workflow
 

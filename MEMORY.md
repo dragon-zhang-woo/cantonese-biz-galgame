@@ -41,38 +41,43 @@
 - 主线 AI 回应、12 项训练回应、自定义情境描述和自定义逐轮回应统一使用
   `UtteranceInput`；训练库搜索框保持文本输入。
 - 麦克风通过 `MediaRecorder` 保存原始 Blob，同时由 `AudioWorklet` 输出
-  16 kHz 单声道 PCM、实时字幕与音量反馈；支持 WAV、MP3、M4A/AAC、
+  16 kHz 单声道 PCM 和音量反馈；支持 WAV、MP3、M4A/AAC、
   Ogg 和 WebM 文件上传。
 - 录音只进入专用 IndexedDB：最多最近 20 条、30 天；不保存原文件名、
   转写文本、情境内容或模型结果，并提供回放、下载、重新转写、删除和清空。
-- 后端新增独立 `SpeechTranscriptionModule`、能力探测、multipart 文件转写和
-  真正 WebSocket 流式接口；PyAV 负责文件头/解码校验和 16 kHz 单声道归一化。
+- 后端新增独立 `SpeechTranscriptionModule`、能力探测、JSON/Base64 文件转写和
+  受能力门控的 WebSocket 流式入口；PyAV 负责文件头/解码校验和 16 kHz
+  单声道归一化。当前未配置未经供应商证明的实时 ASR 上游。
 - 音频并发限制为每客户端 2 个任务、每分钟 10 次启动；实时接口校验 Origin，
   上传结束后立即关闭 `UploadFile`，音频不进入 `GameEngine`、`TurnCache` 或存档。
 - `/api/game/turn` 新增兼容字段 `player_action.input_kind`；新自由回答显式标记
   `free`，旧 `custom-response` 与 `custom-round-*` 仍兼容。
 - 港话通 Speech 转写来源与 DeepSeek 角色反应、港话通文本复盘来源分开显示；
   用户确认可编辑文字后才进入原有双模型回合。
-- 公开资料只确认港话通支持广东话，未给出实时/文件端点和明确鉴权契约。
-  只有填写主办方提供的显式 HTTP/WS URL 后才开放能力，不以整段轮询伪装实时。
+- HKGAI Studio 已确认文件识别为 Bearer 鉴权的
+  `POST /server_proxy/api/v1/speech_recognize`，请求使用 JSON/Base64，结果位于
+  `data.result`；当前只公布 TTS WebSocket，没有实时 ASR 契约。
+- 文件识别可凭 Speech API Key 开启；实时字幕继续如实关闭，不使用 TTS
+  WebSocket，也不以整段轮询伪装实时。
 
 ## 验证基线
 
 - 前端：53 项测试通过；ESLint 与 Vite production build 通过。
-- 后端：隔离 `.venv` 中 53 项测试通过。
+- 后端：隔离 `.venv` 中 59 项测试通过。
 - Playwright 已在 1440×1024 与 390×844 确认主线、训练回应、自定义描述和
   自定义逐轮回应的语音控制；训练库搜索框无语音按钮。
 - 两种视口均无横向溢出，浏览器控制台 0 错误；首次上传隐私说明和不支持
   文件的错误恢复已验证。
 - 本机未安装 Docker CLI；PR CI 已成功构建 Web/API Docker 镜像。真实港话通
-  Speech 验收仍等待主办方接口契约。
+  文件识别已用 2.64 秒无敏感粤语短句通过端到端验收，返回来源
+  `hkchat-speech` 且无警告；实时 ASR 仍等待主办方契约。
 - 审计新增真实六类容器解码、流式 sequence 去重/合并、PCM 时长限制、取消、
   上游错误映射、录音组件权限/启停和配额失败内存下载覆盖。
 - 麦克风权限被拒后会隐藏录音启动能力；快速停止会关闭尚在连接的实时
   Socket，录音器初始化失败会释放媒体轨道。组件测试新增追加/替换、超长
   保留和本机录音失败重试；文件测试新增字段时长上限与失败请求资源关闭。
-- 草稿 PR #18 的前端、后端及两个 Docker 镜像构建均通过；只剩外部 Speech
-  契约与真实供应商验收待补齐。
+- 草稿 PR #18 的前端、后端及两个 Docker 镜像构建均通过；官方文件识别已完成
+  真实验收，实时 ASR 则等待主办方提供独立 WebSocket 契约。
 
 ## 关键入口
 

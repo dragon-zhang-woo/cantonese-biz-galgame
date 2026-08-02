@@ -54,21 +54,24 @@ box remains text-only.
 ```text
 microphone
 ├── MediaRecorder → original Blob → IndexedDB / playback / download
-└── AudioWorklet → 16 kHz mono PCM → WebSocket → HKChat Speech captions
+└── AudioWorklet → 16 kHz mono PCM → guarded WebSocket path (disabled today)
 
 uploaded audio → IndexedDB → FastAPI validation/PyAV normalization
-               → HKChat Speech file transcription
+               → JSON/Base64 → HKChat Speech file transcription
 
 editable transcript → explicit learner submit → existing dual-model turn
 ```
 
 `SpeechTranscriptionModule` is independent of `GameEngine`. It validates file
 headers, size, duration, scope, client concurrency and WebSocket Origin, then
-normalizes audio to 16 kHz mono. The production adapter is enabled only when an
-explicit organiser-supplied HTTP or WebSocket endpoint is configured. A base
-host or API key alone is not treated as proof of a working contract.
+normalizes audio to 16 kHz mono. HKGAI Studio documents Bearer authentication
+and the JSON/Base64 `speech_recognize` HTTP response contract, so a Speech key
+enables file transcription through that verified endpoint. Studio currently
+documents only a TTS WebSocket; live ASR stays disabled until the organiser
+supplies a distinct streaming-recognition contract.
 
-Live interim/final events use increasing sequence numbers. The browser keeps
+If a real ASR WebSocket contract is supplied, live interim/final events use
+increasing sequence numbers. The browser keeps
 interim text separate from the editable field, ignores duplicate final events
 and only adopts a completed transcript. If live streaming fails, the finished
 recording is retained and file transcription is attempted once when available.

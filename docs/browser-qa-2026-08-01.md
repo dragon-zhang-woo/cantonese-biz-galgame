@@ -26,9 +26,9 @@
 
 训练库搜索框保持文本搜索，没有语音控件。首次上传会先显示“录音与隐私
 说明”；拒绝或不支持的文件显示稳定错误，文字输入不受阻断；麦克风权限被
-拒绝后隐藏录音启动按钮，上传和键盘仍可用。当前本机未配置
-主办方提供的港话通 Speech HTTP/WS 契约，因此能力探测如实返回关闭，未用
-整段轮询伪装实时转写。真实供应商验收需在取得契约后补跑。
+拒绝后隐藏录音启动按钮，上传和键盘仍可用。HKGAI Studio 已公布
+Bearer + JSON/Base64 文件识别契约；实时 ASR 仍无 WebSocket 契约，能力
+探测如实关闭，未使用 TTS Socket 或整段轮询伪装实时。
 
 ## 关键断言
 
@@ -46,7 +46,7 @@
 ## 自动化回归
 
 - 前端：53 项 Vitest 测试通过。
-- 后端：隔离 `.venv` 中 53 项 Pytest 测试通过。
+- 后端：隔离 `.venv` 中 59 项 Pytest 测试通过。
 - ESLint 与 Vite production build 通过。
 - 当前 Windows 验收机没有安装 Docker CLI，`docker compose build` 未运行；
   PR CI 已在 Ubuntu runner 成功构建 Web/API 两个独立 Docker 镜像。
@@ -59,8 +59,11 @@
   WebM/Opus，全部归一化为 16 kHz 单声道 WAV。
 - 流式测试覆盖重复/倒退 sequence、final 合并、PCM 字节时长上限、取消、
   Origin、每客户端并发和启动频率。
-- 文件 Adapter 覆盖 Basic/Bearer、认证失败、普通 4xx、5xx、429 和超时的
-  稳定错误映射。
+- 文件 Adapter 覆盖官方 Bearer + JSON/Base64 请求/响应、认证失败、普通
+  4xx、5xx、429、业务错误码和超时的稳定错误映射。
+- 真实港话通端到端验收使用无敏感短句“麻烦你确认负责人同更新时间”：
+  2.64 秒粤语 WAV 经本地上传端点归一化后成功返回繁体转写，来源
+  `hkchat-speech`、警告为空；音频未落盘。
 - 前端组件测试覆盖麦克风拒绝、开始/停止、录音时锁定文本、ASR 不可用、
   IndexedDB 配额失败后的当前内存 Blob 下载，以及 interim/final 去重、
   追加/替换、超长不截断、失败后从本机录音重试和 iOS M4A MIME 推断。

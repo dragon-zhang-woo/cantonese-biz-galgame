@@ -5,6 +5,7 @@ import asyncio
 import base64
 import json
 import time
+import uuid
 import wave
 from collections import defaultdict, deque
 from dataclasses import dataclass
@@ -86,41 +87,30 @@ class HKChatSpeechAdapter:
         self.settings = settings
         self.url = settings.hkchat_speech_http_url
         self.api_key = settings.hkchat_speech_api_key
-        self.auth_mode = settings.hkchat_speech_auth_mode
-        self.username = settings.hkchat_speech_username
-        self.password = settings.hkchat_speech_password
         self.http_transport = http_transport
 
-    def _auth(self) -> tuple[dict[str, str], httpx.BasicAuth | None]:
-        if self.auth_mode == "basic":
-            username = self.username or self.api_key
-            return {}, httpx.BasicAuth(username, self.password)
-        return {"Authorization": f"Bearer {self.api_key}"}, None
-
     def _websocket_headers(self) -> dict[str, str]:
-        if self.auth_mode == "basic":
-            username = self.username or self.api_key
-            token = base64.b64encode(
-                f"{username}:{self.password}".encode("utf-8")
-            ).decode("ascii")
-            return {"Authorization": f"Basic {token}"}
         return {"Authorization": f"Bearer {self.api_key}"}
 
     async def transcribe_file(
         self, audio: bytes, *, language_hint: str
     ) -> SpeechAdapterResult:
-        headers, auth = self._auth()
         try:
             async with httpx.AsyncClient(
-                timeout=35.0,
+                timeout=httpx.Timeout(180.0, connect=10.0),
                 transport=self.http_transport,
             ) as client:
                 response = await client.post(
                     self.url,
-                    headers=headers,
-                    auth=auth,
-                    files={"audio": ("speech.wav", audio, "audio/wav")},
-                    data={"language_hint": language_hint},
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    json={
+                        "request_id": str(uuid.uuid4()),
+                        "resource": {
+                            "type": 2,
+                            "data": base64.b64encode(audio).decode("ascii"),
+                        },
+                        "config": {"ddc": False, "hot_keys": []},
+                    },
                 )
             if response.status_code in {401, 403}:
                 raise SpeechModuleError(
@@ -138,13 +128,38 @@ class HKChatSpeechAdapter:
                 )
             response.raise_for_status()
             payload = response.json()
-            transcript = str(payload.get("transcript") or payload.get("text") or "").strip()
+            provider_code = payload.get("code")
+            if provider_code in {401, 403, "401", "403"}:
+                raise SpeechModuleError(
+                    "upstream_auth",
+                    "港话通语音鉴权失败。",
+                    502,
+                    False,
+                )
+            if provider_code in {429, "429"}:
+                raise SpeechModuleError(
+                    "upstream_rate_limited",
+                    "港话通语音服务繁忙，请稍后重试。",
+                    503,
+                    True,
+                )
+            if provider_code not in {200, "200"}:
+                raise SpeechModuleError(
+                    "upstream_unavailable",
+                    "港话通语音暂时不可用，录音仍保留在本机。",
+                    502,
+                    True,
+                )
+            result = payload.get("data")
+            transcript = str(
+                result.get("result") if isinstance(result, dict) else ""
+            ).strip()
             if not transcript:
                 raise ValueError("empty transcript")
             return SpeechAdapterResult(
                 transcript=transcript,
-                detected_language=payload.get("detected_language") or payload.get("language"),
-                warnings=tuple(payload.get("warnings") or ()),
+                detected_language=None,
+                warnings=(),
             )
         except SpeechModuleError:
             raise
