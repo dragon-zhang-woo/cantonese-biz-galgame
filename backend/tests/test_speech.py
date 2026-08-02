@@ -68,22 +68,71 @@ def test_speech_capabilities_enable_the_documented_file_contract_with_a_key() ->
     assert payload["live_supported"] is False
 
 
-def test_speech_capabilities_allow_explicit_live_only_bearer_contract() -> None:
+def test_speech_capabilities_reject_the_documented_tts_websocket_for_live_asr() -> None:
     client = TestClient(
         create_app(
             Settings(
                 hkchat_speech_api_key="test-key",
                 hkchat_speech_http_url="",
-                hkchat_speech_ws_url="wss://speech.example.test/live",
+                hkchat_speech_ws_url=(
+                    "wss://openspeech.hkgai.net/server_proxy/api/ws/tts"
+                ),
             )
         )
     )
 
     payload = client.get("/api/speech/capabilities").json()
 
+    assert payload["configured"] is False
+    assert payload["live_supported"] is False
+    assert payload["upload_supported"] is False
+
+
+def test_speech_capabilities_allow_an_explicitly_injected_live_adapter() -> None:
+    class VerifiedLiveAdapter:
+        async def transcribe_file(self, audio: bytes, *, language_hint: str):
+            raise AssertionError("file transcription is not configured")
+
+        async def stream(self, events):
+            yield {"type": "ready"}
+
+    payload = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="",
+                hkchat_speech_ws_url="wss://speech.example.test/live",
+            ),
+            speech_adapter=VerifiedLiveAdapter(),
+        )
+    ).get("/api/speech/capabilities").json()
+
     assert payload["configured"] is True
     assert payload["live_supported"] is True
     assert payload["upload_supported"] is False
+
+
+def test_live_websocket_refuses_the_tts_socket_without_a_verified_adapter() -> None:
+    client = TestClient(
+        create_app(
+            Settings(
+                hkchat_speech_api_key="test-key",
+                hkchat_speech_http_url="",
+                hkchat_speech_ws_url=(
+                    "wss://openspeech.hkgai.net/server_proxy/api/ws/tts"
+                ),
+            )
+        )
+    )
+
+    try:
+        with client.websocket_connect(
+            "/api/speech/transcriptions/live",
+            headers={"origin": "http://localhost:5173"},
+        ):
+            raise AssertionError("unverified TTS socket enabled live ASR")
+    except Exception as error:
+        assert getattr(error, "code", None) == 1013
 
 
 def _wav_bytes(duration_ms: int = 250) -> bytes:

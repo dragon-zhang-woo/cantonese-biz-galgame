@@ -14,8 +14,6 @@ from typing import Any, Protocol
 
 import av
 import httpx
-from websockets.asyncio.client import connect
-from websockets.exceptions import InvalidStatus
 
 from app.core.config import Settings
 from app.models.schemas import (
@@ -88,9 +86,6 @@ class HKChatSpeechAdapter:
         self.url = settings.hkchat_speech_http_url
         self.api_key = settings.hkchat_speech_api_key
         self.http_transport = http_transport
-
-    def _websocket_headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self.api_key}"}
 
     async def transcribe_file(
         self, audio: bytes, *, language_hint: str
@@ -178,86 +173,6 @@ class HKChatSpeechAdapter:
                 True,
             ) from exc
 
-    async def stream(
-        self, events: AsyncIterator[SpeechStreamInput]
-    ) -> AsyncIterator[SpeechStreamEvent]:
-        headers = self._websocket_headers()
-        try:
-            async with connect(
-                self.settings.hkchat_speech_ws_url,
-                additional_headers=headers,
-                open_timeout=10,
-                close_timeout=5,
-                max_size=1_048_576,
-            ) as upstream:
-                async def send_events() -> None:
-                    try:
-                        async for event in events:
-                            if isinstance(event, bytes):
-                                await upstream.send(event)
-                            else:
-                                await upstream.send(json.dumps(event, ensure_ascii=False))
-                    except Exception:
-                        await upstream.close(code=1011, reason="client_stream_error")
-                        raise
-
-                sender = asyncio.create_task(send_events())
-                try:
-                    async with asyncio.timeout(330):
-                        async for message in upstream:
-                            if not isinstance(message, str):
-                                continue
-                            event = json.loads(message)
-                            yield event
-                            if event.get("type") in {"complete", "error"}:
-                                return
-                finally:
-                    if not sender.done():
-                        sender.cancel()
-                    sender_result = await asyncio.gather(sender, return_exceptions=True)
-                    sender_error = sender_result[0]
-                    if isinstance(sender_error, Exception):
-                        raise sender_error
-        except TimeoutError as exc:
-            raise SpeechModuleError(
-                "upstream_timeout",
-                "港话通实时语音超时，录音仍保留在本机。",
-                504,
-                True,
-            ) from exc
-        except SpeechModuleError:
-            raise
-        except InvalidStatus as exc:
-            status_code = getattr(exc.response, "status_code", None)
-            if status_code in {401, 403}:
-                raise SpeechModuleError(
-                    "upstream_auth",
-                    "港话通实时语音鉴权失败。",
-                    502,
-                    False,
-                ) from exc
-            if status_code == 429:
-                raise SpeechModuleError(
-                    "upstream_rate_limited",
-                    "港话通实时语音服务繁忙，请稍后重试。",
-                    503,
-                    True,
-                ) from exc
-            raise SpeechModuleError(
-                "upstream_unavailable",
-                "港话通实时语音暂时不可用，录音仍保留在本机。",
-                502,
-                True,
-            ) from exc
-        except Exception as exc:
-            raise SpeechModuleError(
-                "upstream_unavailable",
-                "港话通实时语音暂时不可用，录音仍保留在本机。",
-                502,
-                True,
-            ) from exc
-
-
 def _matches_file_signature(content_type: str, data: bytes) -> bool:
     if content_type in {"audio/wav", "audio/x-wav"}:
         return data.startswith(b"RIFF") and data[8:12] == b"WAVE"
@@ -311,10 +226,14 @@ class SpeechTranscriptionModule:
 
     def __init__(self, settings: Settings, adapter: SpeechAdapter | None = None):
         self.settings = settings
+        # A live adapter must be explicitly injected after its upstream contract has
+        # been implemented and verified. Merely setting a WebSocket URL must never
+        # activate a guessed provider protocol (or accidentally target the TTS socket).
+        self._live_adapter_verified = adapter is not None and callable(
+            getattr(adapter, "stream", None)
+        )
         self.adapter = adapter
-        if self.adapter is None and (
-            settings.speech_upload_configured or settings.speech_live_configured
-        ):
+        if self.adapter is None and settings.speech_upload_configured:
             self.adapter = HKChatSpeechAdapter(settings)
         self._access_lock = asyncio.Lock()
         self._starts: dict[str, deque[float]] = defaultdict(deque)
@@ -350,7 +269,7 @@ class SpeechTranscriptionModule:
     def capabilities(self) -> SpeechCapabilities:
         upload = self.adapter is not None and self.settings.speech_upload_configured
         live = (
-            self.adapter is not None
+            self._live_adapter_verified
             and self.settings.speech_live_configured
             and callable(getattr(self.adapter, "stream", None))
         )
@@ -401,7 +320,11 @@ class SpeechTranscriptionModule:
         self, events: AsyncIterator[SpeechStreamInput]
     ) -> AsyncIterator[SpeechStreamEvent]:
         stream = getattr(self.adapter, "stream", None)
-        if not self.settings.speech_live_configured or not callable(stream):
+        if (
+            not self._live_adapter_verified
+            or not self.settings.speech_live_configured
+            or not callable(stream)
+        ):
             raise SpeechModuleError(
                 "not_configured",
                 "港话通实时语音尚未配置。",

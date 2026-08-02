@@ -50,6 +50,7 @@ When implementing from a selected generated mock, treat that image as the source
 - Custom-scenario audio must disclose that it reaches HKChat Speech before browser text redaction. Keyboard input and deterministic offline training remain available whenever microphone, HTTPS, permissions or the speech provider are unavailable.
 - HKGAI Studio documents Speech recognition as Bearer-authenticated JSON/Base64 `POST /server_proxy/api/v1/speech_recognize`, returning `data.result`; use that exact contract for file transcription.
 - Studio currently documents a WebSocket only for TTS, not ASR. Keep live transcription disabled until the organiser supplies an explicit streaming-recognition contract; never point live ASR at the TTS socket or emulate streaming by polling complete-file uploads.
+- A configured WebSocket URL alone is not proof of a live-ASR contract. Production capabilities may expose live transcription only through an explicitly implemented and injected verified live adapter.
 
 ## Durable Repository Workflow
 

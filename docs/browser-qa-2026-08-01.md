@@ -46,7 +46,7 @@ Bearer + JSON/Base64 文件识别契约；实时 ASR 仍无 WebSocket 契约，�
 ## 自动化回归
 
 - 前端：53 项 Vitest 测试通过。
-- 后端：隔离 `.venv` 中 59 项 Pytest 测试通过。
+- 后端：隔离 `.venv` 中 61 项 Pytest 测试通过。
 - ESLint 与 Vite production build 通过。
 - 当前 Windows 验收机没有安装 Docker CLI，`docker compose build` 未运行；
   PR CI 已在 Ubuntu runner 成功构建 Web/API 两个独立 Docker 镜像。
@@ -64,6 +64,11 @@ Bearer + JSON/Base64 文件识别契约；实时 ASR 仍无 WebSocket 契约，�
 - 真实港话通端到端验收使用无敏感短句“麻烦你确认负责人同更新时间”：
   2.64 秒粤语 WAV 经本地上传端点归一化后成功返回繁体转写，来源
   `hkchat-speech`、警告为空；音频未落盘。
+- 官方 Studio Speech 专用脚本只展示 TTS、整文件识别、会议转写三类动作；
+  `recognize` / `transcribe` 都在选定完整文件后以 JSON/Base64 提交。专用脚本
+  及页面已加载资源中均未发现实时 ASR 或 WebSocket 调用。
+- 后端能力测试确认：仅设置任意 WS URL 不会启用生产实时能力；只有显式注入
+  已验证 live Adapter 才能开放本地 WebSocket 契约，避免误连 TTS Socket。
 - 前端组件测试覆盖麦克风拒绝、开始/停止、录音时锁定文本、ASR 不可用、
   IndexedDB 配额失败后的当前内存 Blob 下载，以及 interim/final 去重、
   追加/替换、超长不截断、失败后从本机录音重试和 iOS M4A MIME 推断。

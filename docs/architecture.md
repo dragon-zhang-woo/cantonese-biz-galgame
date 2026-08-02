@@ -68,7 +68,10 @@ normalizes audio to 16 kHz mono. HKGAI Studio documents Bearer authentication
 and the JSON/Base64 `speech_recognize` HTTP response contract, so a Speech key
 enables file transcription through that verified endpoint. Studio currently
 documents only a TTS WebSocket; live ASR stays disabled until the organiser
-supplies a distinct streaming-recognition contract.
+supplies a distinct streaming-recognition contract. The production module does
+not construct a live adapter from a URL: live capability can only be exposed by
+an explicitly injected adapter whose upstream contract has been implemented and
+verified.
 
 If a real ASR WebSocket contract is supplied, live interim/final events use
 increasing sequence numbers. The browser keeps

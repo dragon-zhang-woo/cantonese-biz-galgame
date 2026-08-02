@@ -140,8 +140,9 @@ cp .env.example .env
 `/server_proxy/api/v1/speech_recognize`；填写 `HKCHAT_SPEECH_API_KEY` 即可启用
 上传与停止后转写。Studio 当前只公布 TTS WebSocket，没有实时 ASR 契约，
 因此 `HKCHAT_SPEECH_WS_URL` 默认留空，实时字幕能力如实关闭，绝不以轮询整段
-录音伪装流式识别。没有语音配置时，录音仍可保存在本机并下载，键盘和离线
-训练完全不受影响。
+录音伪装流式识别；单独填写任意 WebSocket URL 也不会开启能力，必须先实现并
+显式注入经过契约验证的实时 Adapter。没有语音配置时，录音仍可保存在本机并
+下载，键盘和离线训练完全不受影响。
 
 ### Docker Compose
 

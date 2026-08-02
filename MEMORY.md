@@ -7,8 +7,9 @@
 - 代码库：`D:\火鸟黑客松竞赛\粤商通 Galgame`
 - 稳定基线：`develop` 的 `f34a7e1`；PR #17 已合并。
 - 当前开发分支：`feature/voice-input-v1`。
-- 草稿 PR：[#18](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pull/18)，
-  目标分支 `develop`；首个功能提交为 `9bf9b40`。
+- PR #18 已合并；官方 Speech 契约增量位于草稿
+  [PR #19](https://github.com/dragon-zhang-woo/cantonese-biz-galgame/pull/19)，
+  目标分支 `develop`，当前可合并且 CI 通过。
 - 项目是 2026 火鸟 AI 黑客松开放赛道作品：以香港职场关系后果驱动的
   商务粤语 AI 视觉小说与训练平台。
 
@@ -58,12 +59,13 @@
   `POST /server_proxy/api/v1/speech_recognize`，请求使用 JSON/Base64，结果位于
   `data.result`；当前只公布 TTS WebSocket，没有实时 ASR 契约。
 - 文件识别可凭 Speech API Key 开启；实时字幕继续如实关闭，不使用 TTS
-  WebSocket，也不以整段轮询伪装实时。
+  WebSocket，也不以整段轮询伪装实时。任意 WS URL 不会自动启用生产流式
+  能力，必须显式注入已经实现并验证上游契约的 live Adapter。
 
 ## 验证基线
 
 - 前端：53 项测试通过；ESLint 与 Vite production build 通过。
-- 后端：隔离 `.venv` 中 59 项测试通过。
+- 后端：隔离 `.venv` 中 61 项测试通过。
 - Playwright 已在 1440×1024 与 390×844 确认主线、训练回应、自定义描述和
   自定义逐轮回应的语音控制；训练库搜索框无语音按钮。
 - 两种视口均无横向溢出，浏览器控制台 0 错误；首次上传隐私说明和不支持
@@ -76,8 +78,12 @@
 - 麦克风权限被拒后会隐藏录音启动能力；快速停止会关闭尚在连接的实时
   Socket，录音器初始化失败会释放媒体轨道。组件测试新增追加/替换、超长
   保留和本机录音失败重试；文件测试新增字段时长上限与失败请求资源关闭。
-- 草稿 PR #18 的前端、后端及两个 Docker 镜像构建均通过；官方文件识别已完成
-  真实验收，实时 ASR 则等待主办方提供独立 WebSocket 契约。
+- PR #18 已合并；后续草稿 PR #19 的前端、后端及两个 Docker 镜像构建均
+  通过。官方文件识别已完成真实验收，实时 ASR 则等待主办方提供独立
+  WebSocket 契约。
+- HKGAI Studio Speech 专用前端脚本只实现 TTS、整文件识别和会议转写：识别
+  路径先用 `FileReader` 读取完整文件再提交 JSON/Base64；专用脚本和已加载资源
+  均无实时 ASR / WebSocket 调用。生产代码已移除猜测式上游 WebSocket Relay。
 
 ## 关键入口
 
