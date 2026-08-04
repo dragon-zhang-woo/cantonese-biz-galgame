@@ -2,28 +2,30 @@
 
 最后更新：2026-08-04
 
-## 在线双模型部署修复（进行中）
+## 在线双模型部署修复（Cloudflare 已上线，Pages 接入中）
 
-- 新分支 `fix/online-dual-model-deployment` 基于最新 `origin/develop`。
-- 新增根目录 `render.yaml`：Render Singapore 单实例 Docker Web Service、
-  `starter` 计划、1 GB `/app/data` 持久卷、`/health` 健康检查、¥5 总预算、
-  每匿名客户端 5 回合，并在首次 Blueprint 创建时安全提示填写两个模型密钥。
-- `PUBLIC_REQUIRE_DUAL_MODEL=true` 时，缺失任一模型 Provider 会令 `/health`
-  返回 503，`/api/game/turn` 返回可恢复的 `dual_model_unavailable`，且不预扣额度。
-- `/api/public/quota` 现在同时公开 `provider` 和 `dual_model_ready`；前端首页会
-  区分检查中、双模型在线、额度耗尽、配置不完整、网络不可达、URL 无效和未配置。
-- Pages 公共构建拒绝非 HTTPS API 地址并规范化尾部斜杠；模型请求失败会保留
-  稳定原因，界面不再把 429、超时和配置错误混成同一个降级提示。
-- 新增 `npm run verify:public-api -- <URL> [--spend-turn]` 和
-  `docs/public-ai-deployment.md`，用于真实 Provider、额度递减及 Pages 接入验收。
-- 验证：前端 72 项、后端 72 项测试全部通过，ESLint、Pages production build、
-  Render YAML 结构检查通过。用本机已有密钥完成一次无敏感固定句真实调用，
-  `provider=deepseek+hkchat`、临时额度 2→1、Pages Origin CORS 正确。
-- Playwright 1440×1024 验证离线与在线额度状态，两种状态控制台均 0 error/
-  0 warning；截图在 `output/playwright/public-api-status-*-1440.png`。
-- 尚未完成：代码合并至 `develop/main`、创建付费 Render 服务、填写后端密钥、
-  设置 GitHub `PUBLIC_API_BASE_URL` 及真实线上 Pages 验收。创建 Render 持久卷
-  会产生托管费用，需要用户确认托管账户与付费授权。
+- Render 付费方案已由用户明确放弃；未创建 Render 服务，也无需添加银行卡。
+- PR #24 已合入 `develop`，PR #25 已将同一批前端状态、FastAPI 双模型守门和
+  验证脚本提升至 `main`；两批 CI 与 Pages 发布均成功。
+- 新分支 `fix/cloudflare-dual-model` 基于最新 `origin/develop`，将公开后端改为
+  Cloudflare Workers Free + D1，FastAPI 继续保留为本地/容器后端。
+- Worker 已实现 `/health`、`/api/public/quota`、`/api/game/turn` 和公开语音能力
+  探测；缺失任一模型密钥时回合接口 503 且不扣额度。
+- D1 使用单条条件 `INSERT ... RETURNING` 原子预留回合：¥5 总预算、每次保守
+  ¥0.05、全站最多 100 回合、每个加盐哈希客户端最多 5 回合，不保存 IP 或文本。
+- DeepSeek 与港话通并行请求并独立降级；Worker 对输入长度、字段和数值边界做
+  白名单校验，拒绝无效 Origin，模型密钥只通过 Cloudflare Secrets 注入。
+- Worker 7 项单测、ESLint、Wrangler dry-run 和本地 D1 migration 已通过；本地
+  HTTP 验证健康、CORS、100 回合初始额度及无效请求不扣额度均正确。
+- Cloudflare OAuth 已完成；远程 D1 `cantonese-biz-public-budget`
+  (`771cfad3-66b3-4ad5-acb4-635452f656d1`) 已创建并应用迁移，三个 Secret 均已
+  加密写入 Worker。
+- Worker 已部署到
+  `https://cantonese-biz-dual-model-api.cantonese-biz-galgame.workers.dev`；真实
+  烟雾测试返回 `deepseek+hkchat` 和 `localization.source=hkchat`，D1 从 0 精确
+  增加到 1、剩余 99。
+- GitHub Actions 变量 `PUBLIC_API_BASE_URL` 已设为上述 Worker；尚待合并本分支、
+  重新发布 `main` Pages，并完成线上页面自由回答与第二次额度递减验收。
 
 ## 当前状态
 
