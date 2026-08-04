@@ -2,7 +2,7 @@
 
 最后更新：2026-08-04
 
-## 在线双模型部署修复（Cloudflare 已上线，Pages 接入中）
+## 在线双模型部署修复（已完成）
 
 - Render 付费方案已由用户明确放弃；未创建 Render 服务，也无需添加银行卡。
 - PR #24 已合入 `develop`，PR #25 已将同一批前端状态、FastAPI 双模型守门和
@@ -24,8 +24,12 @@
   `https://cantonese-biz-dual-model-api.cantonese-biz-galgame.workers.dev`；真实
   烟雾测试返回 `deepseek+hkchat` 和 `localization.source=hkchat`，D1 从 0 精确
   增加到 1、剩余 99。
-- GitHub Actions 变量 `PUBLIC_API_BASE_URL` 已设为上述 Worker；尚待合并本分支、
-  重新发布 `main` Pages，并完成线上页面自由回答与第二次额度递减验收。
+- PR #26 已合入 `develop`，发布 PR #27 已合入 `main`；Pages run
+  `30923908538` 构建与部署成功，仓库变量 `PUBLIC_API_BASE_URL` 指向上述 Worker。
+- 真实 Pages UI 已显示“双模型在线”和剩余 99 回合；从电影化主线切换 AI 即兴后，
+  一条无敏感信息的自由回答返回 `DeepSeek + 港话通`、港式三维评分与改写，D1
+  从 1 精确增加到 2、剩余 98。当前页面控制台无 error/warning，资源请求主机只有
+  GitHub Pages 与该 Worker，没有 `localhost` 或浏览器直连模型供应商。
 
 ## 当前状态
 
