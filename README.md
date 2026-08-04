@@ -149,7 +149,8 @@ cp .env.example .env
 GitHub Pages 使用 `.github/workflows/pages.yml` 从 `main` 构建。默认公开构建是
 零项目 API 消耗；若已有 HTTPS 后端，在仓库 Actions Variable 中设置
 `PUBLIC_API_BASE_URL` 后重新部署即可启用受限自由输入。不要把任何模型密钥写进
-Vite 环境变量或前端代码。
+Vite 环境变量或前端代码。Render Blueprint、真实双模型烟雾测试与 Pages 接入
+步骤见 [`docs/public-ai-deployment.md`](docs/public-ai-deployment.md)。
 
 港话通 [Studio Speech](https://hkgai-studio.prod.hkchat.app/zh-Hans/modelhub/speech)
 已确认文件识别使用 Bearer 鉴权，并以 JSON/Base64 调用
