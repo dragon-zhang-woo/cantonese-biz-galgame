@@ -98,10 +98,14 @@ React 19 + Vite 6
         └── 港话通 Speech Adapter（官方 JSON/Base64 文件识别；流式守门）
 ```
 
+公开体验另使用 Cloudflare Worker 复刻回合接口，并由 D1 原子记录全站与访客
+额度；FastAPI 保留为本地开发和容器部署后端。
+
 后端通过 Pydantic 验证结构化输出，并为两类模型提供独立降级和短期内存缓存。
-公开后端可启用持久化预算闸门：`PUBLIC_AI_BUDGET_CNY=5`、每次双模型回合
+公开后端启用 D1 持久化预算闸门：`PUBLIC_AI_BUDGET_CNY=5`、每次双模型回合
 保守预留 ¥0.05、全站最多 100 回合、每个匿名客户端最多 5 回合。应用层只保存
-哈希客户端标识与计数；生产环境仍应使用单独的小额余额 API 账户作为最终止损。
+加盐哈希客户端标识与计数；本地 FastAPI 使用同语义的 SQLite 实现。生产环境仍
+应使用单独的小额余额 API 账户作为最终止损。
 详细设计见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 本地运行
@@ -149,8 +153,8 @@ cp .env.example .env
 GitHub Pages 使用 `.github/workflows/pages.yml` 从 `main` 构建。默认公开构建是
 零项目 API 消耗；若已有 HTTPS 后端，在仓库 Actions Variable 中设置
 `PUBLIC_API_BASE_URL` 后重新部署即可启用受限自由输入。不要把任何模型密钥写进
-Vite 环境变量或前端代码。Render Blueprint、真实双模型烟雾测试与 Pages 接入
-步骤见 [`docs/public-ai-deployment.md`](docs/public-ai-deployment.md)。
+Vite 环境变量或前端代码。Cloudflare Workers + D1、真实双模型烟雾测试与
+Pages 接入步骤见 [`docs/public-ai-deployment.md`](docs/public-ai-deployment.md)。
 
 港话通 [Studio Speech](https://hkgai-studio.prod.hkchat.app/zh-Hans/modelhub/speech)
 已确认文件识别使用 Bearer 鉴权，并以 JSON/Base64 调用
