@@ -163,6 +163,7 @@ def test_configures_dual_model_pipeline() -> None:
     )
 
     assert engine.provider_name == "deepseek+hkchat"
+    assert engine.dual_model_ready is True
     assert engine.scene_provider is not None
     assert engine.localization_provider is not None
 
