@@ -30,4 +30,25 @@ describe("resolveRuntimeConfig", () => {
     expect(limited.remoteApiEnabled).toBe(true);
     expect(limited.apiBase).toBe("https://api.example.com");
   });
+
+  it("normalizes the API base and rejects insecure public endpoints", () => {
+    const normalized = resolveRuntimeConfig(
+      {
+        VITE_PUBLIC_DEMO_MODE: "true",
+        VITE_API_BASE_URL: "https://api.example.com/",
+      },
+      { hostname: "dragon-zhang-woo.github.io" },
+    );
+    const insecure = resolveRuntimeConfig(
+      {
+        VITE_PUBLIC_DEMO_MODE: "true",
+        VITE_API_BASE_URL: "http://api.example.com",
+      },
+      { hostname: "dragon-zhang-woo.github.io" },
+    );
+
+    expect(normalized.apiBase).toBe("https://api.example.com");
+    expect(insecure.remoteApiEnabled).toBe(false);
+    expect(insecure.configurationIssue).toBe("invalid_api_url");
+  });
 });

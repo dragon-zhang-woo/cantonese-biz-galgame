@@ -35,6 +35,10 @@ class GameEngine:
         localization = "hkchat" if self.localization_provider else "fallback"
         return self._provider_label(scene, localization)
 
+    @property
+    def dual_model_ready(self) -> bool:
+        return self.scene_provider is not None and self.localization_provider is not None
+
     @staticmethod
     def _provider_label(scene: str, localization: str) -> str:
         if scene == "fallback" and localization == "fallback":

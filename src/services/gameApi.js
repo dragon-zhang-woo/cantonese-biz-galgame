@@ -1,4 +1,18 @@
 import { runtimeConfig } from "./runtimeConfig.js";
+import { announcePublicApiStatusChanged } from "./publicApi.js";
+
+function fallbackResponse(turn, fallbackReason) {
+  return { provider: "fallback", turn, fallbackReason };
+}
+
+async function readApiError(response) {
+  try {
+    const payload = await response.json();
+    return payload?.detail?.code ?? `http_${response.status}`;
+  } catch {
+    return `http_${response.status}`;
+  }
+}
 
 export async function requestAiTurn({
   scene,
@@ -8,7 +22,7 @@ export async function requestAiTurn({
   history = [],
 }) {
   if (!runtimeConfig.remoteApiEnabled) {
-    return { provider: "fallback", turn: fallback };
+    return fallbackResponse(fallback, "not_configured");
   }
 
   const controller = new AbortController();
@@ -59,8 +73,13 @@ export async function requestAiTurn({
       }),
     });
 
-    if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
+    if (!response.ok) {
+      const fallbackReason = await readApiError(response);
+      announcePublicApiStatusChanged();
+      return fallbackResponse(fallback, fallbackReason);
+    }
     const payload = await response.json();
+    announcePublicApiStatusChanged();
     return {
       provider: payload.provider ?? "deepseek",
       turn: {
@@ -88,8 +107,12 @@ export async function requestAiTurn({
           : fallback.localization,
       },
     };
-  } catch {
-    return { provider: "fallback", turn: fallback };
+  } catch (error) {
+    announcePublicApiStatusChanged();
+    return fallbackResponse(
+      fallback,
+      error?.name === "AbortError" ? "timeout" : "network_error",
+    );
   } finally {
     window.clearTimeout(timeout);
   }

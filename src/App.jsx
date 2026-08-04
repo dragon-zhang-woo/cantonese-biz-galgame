@@ -56,6 +56,11 @@ import {
 } from "./services/practiceStore.js";
 import { evaluateBehavior } from "./services/behaviorRubric.js";
 import { runtimeConfig } from "./services/runtimeConfig.js";
+import {
+  fetchPublicApiStatus,
+  initialPublicApiStatus,
+  PUBLIC_API_STATUS_CHANGED,
+} from "./services/publicApi.js";
 
 const statusMeta = {
   trust: { label: "信任", Icon: Handshake },
@@ -95,15 +100,22 @@ function ScorePill({ name, value, compact = false }) {
   );
 }
 
-function ModeToggle({ mode, onChange }) {
+function ModeToggle({ mode, onChange, publicApiStatus }) {
   const isAi = mode === "ai";
-  const isOfflinePublicDemo =
-    runtimeConfig.publicDemoMode && !runtimeConfig.remoteApiEnabled;
-  const label = isOfflinePublicDemo
-    ? "公开演示 · 离线"
-    : isAi
-      ? "AI 即兴"
-      : "标准剧情";
+  const publicAiLabels = {
+    checking: "连接云端",
+    available: "双模型在线",
+    exhausted: "额度已用完",
+    degraded: "模型未就绪",
+    unreachable: "云端不可用",
+    misconfigured: "配置无效",
+    offline: "公开演示 · 离线",
+  };
+  const label = !isAi
+    ? "标准剧情"
+    : runtimeConfig.publicDemoMode
+      ? (publicAiLabels[publicApiStatus?.state] ?? "AI 即兴")
+      : "AI 即兴";
   return (
     <button
       className="mode-toggle"
@@ -127,6 +139,38 @@ function providerLabel(provider) {
     story: "标准剧情",
   };
   return labels[provider] ?? provider;
+}
+
+function publicDemoStatusCopy(status) {
+  switch (status?.state) {
+    case "available":
+      return status.budgetEnabled && status.remainingTurns !== null
+        ? `双模型在线；全站云端额度剩余 ${status.remainingTurns} 回合，每位访客最多 ${status.perClientTurnLimit ?? 5} 回合。`
+        : "双模型在线；自由输入将由 DeepSeek 与港话通共同反馈。";
+    case "checking":
+      return "正在确认云端双模型与公开额度…";
+    case "exhausted":
+      return "公开双模型额度已用完；训练会自动使用本地保底内容。";
+    case "degraded":
+      return "云端后端已连接，但双模型配置不完整；当前使用本地保底内容。";
+    case "unreachable":
+      return "暂时无法连接云端双模型；当前使用本地保底内容。";
+    case "misconfigured":
+      return "公开 API 地址无效或不是 HTTPS；当前使用本地保底内容。";
+    default:
+      return "公开体验尚未连接云端后端；当前使用本地保底内容。";
+  }
+}
+
+function fallbackReasonMessage(reason) {
+  const messages = {
+    public_budget_exhausted: "公开双模型额度已用完，已切换本地保底",
+    dual_model_unavailable: "云端双模型尚未完整配置，已切换本地保底",
+    timeout: "云端双模型响应超时，已切换本地保底",
+    network_error: "无法连接云端双模型，已切换本地保底",
+    not_configured: "公开体验未配置云端模型，已使用本地保底",
+  };
+  return messages[reason] ?? "部分服务不可用，已启用可靠降级";
 }
 
 function buildLocalFeedback(option) {
@@ -372,8 +416,18 @@ function Aftermath({
   );
 }
 
-function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resumeStage }) {
+function IntroModal({
+  onStart,
+  onPractice,
+  onCustom,
+  onShowcase,
+  onRestart,
+  resumeStage,
+  publicApiStatus,
+}) {
   const canResume = Boolean(resumeStage);
+  const PublicStatusIcon =
+    publicApiStatus?.state === "available" ? Cloud : CloudSlash;
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <section className="intro-modal">
@@ -387,11 +441,13 @@ function IntroModal({ onStart, onPractice, onCustom, onShowcase, onRestart, resu
           <span>AI 分析语境与关系后果；剧情控制始终由规则引擎掌握。</span>
         </div>
         {runtimeConfig.publicDemoMode && (
-          <div className="public-demo-note" role="status">
-            <CloudSlash weight="duotone" aria-hidden="true" />
-            <span>
-              公开体验默认零消耗；自由输入仅在受限云端额度可用时增强，额度耗尽会自动离线回退。
-            </span>
+          <div
+            className="public-demo-note"
+            data-state={publicApiStatus?.state}
+            role="status"
+          >
+            <PublicStatusIcon weight="duotone" aria-hidden="true" />
+            <span>{publicDemoStatusCopy(publicApiStatus)}</span>
           </div>
         )}
         <div className="intro-entry-grid">
@@ -551,6 +607,9 @@ export function App() {
   const [resumeAvailable, setResumeAvailable] = useState(
     hasMeaningfulProgress(savedSession),
   );
+  const [publicApiStatus, setPublicApiStatus] = useState(() =>
+    initialPublicApiStatus(),
+  );
   const timeoutRef = useRef(null);
 
   const scene = useMemo(
@@ -581,6 +640,20 @@ export function App() {
 
   useEffect(() => {
     return () => window.clearTimeout(timeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    const refresh = async () => {
+      const nextStatus = await fetchPublicApiStatus();
+      if (isActive) setPublicApiStatus(nextStatus);
+    };
+    refresh();
+    window.addEventListener(PUBLIC_API_STATUS_CHANGED, refresh);
+    return () => {
+      isActive = false;
+      window.removeEventListener(PUBLIC_API_STATUS_CHANGED, refresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -635,6 +708,7 @@ export function App() {
 
     let result = baseResult;
     let provider = "story";
+    let fallbackReason = null;
     if (mode === "ai") {
       const response = await requestAiTurn({
         scene,
@@ -644,6 +718,7 @@ export function App() {
       });
       result = response.turn;
       provider = response.provider;
+      fallbackReason = response.fallbackReason;
     } else {
       await new Promise((resolve) => {
         timeoutRef.current = window.setTimeout(resolve, 320);
@@ -681,7 +756,9 @@ export function App() {
     }
     setIsLoading(false);
     setLiveMessage(
-      provider === "deepseek+hkchat"
+      fallbackReason
+        ? fallbackReasonMessage(fallbackReason)
+        : provider === "deepseek+hkchat"
         ? "双模型剧情与港式纠偏已生成"
         : provider.includes("fallback")
           ? "部分服务不可用，已启用可靠降级"
@@ -948,7 +1025,11 @@ export function App() {
               训练库
             </button>
           )}
-          <ModeToggle mode={mode} onChange={setMode} />
+          <ModeToggle
+            mode={mode}
+            onChange={setMode}
+            publicApiStatus={publicApiStatus}
+          />
         </div>
       </header>
 
@@ -1126,6 +1207,7 @@ export function App() {
           onShowcase={openJudgeShowcase}
           onRestart={restart}
           resumeStage={resumeAvailable ? scene.stage : null}
+          publicApiStatus={publicApiStatus}
         />
       )}
       {experience === "campaign" && started && showPrelude && cinematic && (

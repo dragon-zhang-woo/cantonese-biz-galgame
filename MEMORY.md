@@ -1,6 +1,29 @@
 # 粤商通项目记忆
 
-最后更新：2026-08-02
+最后更新：2026-08-04
+
+## 在线双模型部署修复（进行中）
+
+- 新分支 `fix/online-dual-model-deployment` 基于最新 `origin/develop`。
+- 新增根目录 `render.yaml`：Render Singapore 单实例 Docker Web Service、
+  `starter` 计划、1 GB `/app/data` 持久卷、`/health` 健康检查、¥5 总预算、
+  每匿名客户端 5 回合，并在首次 Blueprint 创建时安全提示填写两个模型密钥。
+- `PUBLIC_REQUIRE_DUAL_MODEL=true` 时，缺失任一模型 Provider 会令 `/health`
+  返回 503，`/api/game/turn` 返回可恢复的 `dual_model_unavailable`，且不预扣额度。
+- `/api/public/quota` 现在同时公开 `provider` 和 `dual_model_ready`；前端首页会
+  区分检查中、双模型在线、额度耗尽、配置不完整、网络不可达、URL 无效和未配置。
+- Pages 公共构建拒绝非 HTTPS API 地址并规范化尾部斜杠；模型请求失败会保留
+  稳定原因，界面不再把 429、超时和配置错误混成同一个降级提示。
+- 新增 `npm run verify:public-api -- <URL> [--spend-turn]` 和
+  `docs/public-ai-deployment.md`，用于真实 Provider、额度递减及 Pages 接入验收。
+- 验证：前端 72 项、后端 72 项测试全部通过，ESLint、Pages production build、
+  Render YAML 结构检查通过。用本机已有密钥完成一次无敏感固定句真实调用，
+  `provider=deepseek+hkchat`、临时额度 2→1、Pages Origin CORS 正确。
+- Playwright 1440×1024 验证离线与在线额度状态，两种状态控制台均 0 error/
+  0 warning；截图在 `output/playwright/public-api-status-*-1440.png`。
+- 尚未完成：代码合并至 `develop/main`、创建付费 Render 服务、填写后端密钥、
+  设置 GitHub `PUBLIC_API_BASE_URL` 及真实线上 Pages 验收。创建 Render 持久卷
+  会产生托管费用，需要用户确认托管账户与付费授权。
 
 ## 当前状态
 

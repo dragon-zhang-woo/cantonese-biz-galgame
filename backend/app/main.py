@@ -7,6 +7,7 @@ from fastapi import (
     Form,
     HTTPException,
     Request,
+    Response,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -50,10 +51,16 @@ def create_app(
     public_budget = PublicApiBudget(config)
 
     @app.get("/health")
-    async def health() -> dict[str, str]:
+    async def health(response: Response) -> dict[str, str | bool]:
+        deployment_ready = (
+            not config.public_require_dual_model or engine.dual_model_ready
+        )
+        if not deployment_ready:
+            response.status_code = 503
         return {
-            "status": "ok",
+            "status": "ok" if deployment_ready else "degraded",
             "provider": engine.provider_name,
+            "dual_model_ready": engine.dual_model_ready,
         }
 
     def get_engine() -> GameEngine:
@@ -65,6 +72,15 @@ def create_app(
         request: TurnRequest,
         game_engine: GameEngine = Depends(get_engine),
     ) -> TurnResponse:
+        if config.public_require_dual_model and not game_engine.dual_model_ready:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "dual_model_unavailable",
+                    "message": "云端双模型尚未完整配置，请继续使用离线训练。",
+                    "recoverable": True,
+                },
+            )
         client_key = http_request.client.host if http_request.client else "unknown"
         try:
             await public_budget.reserve(client_key)
@@ -80,9 +96,11 @@ def create_app(
         return await game_engine.play_turn(request)
 
     @app.get("/api/public/quota")
-    async def public_quota() -> dict[str, bool | float | int | None]:
+    async def public_quota() -> dict[str, bool | float | int | str | None]:
         snapshot = await public_budget.snapshot()
         return {
+            "provider": engine.provider_name,
+            "dual_model_ready": engine.dual_model_ready,
             "enabled": snapshot.enabled,
             "budget_cny": snapshot.budget_cny,
             "estimated_turn_cost_cny": snapshot.estimated_turn_cost_cny,

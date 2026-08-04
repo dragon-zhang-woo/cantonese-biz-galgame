@@ -6,6 +6,41 @@ from app.main import create_app
 from app.services.public_budget import PublicApiBudget, PublicBudgetExhausted
 
 
+def turn_payload() -> dict:
+    return {
+        "scene": {
+            "id": "quota-check",
+            "speaker": "陈嘉敏",
+            "role": "区域业务总监",
+            "npc_line_yue": "你会点跟进？",
+            "npc_line_zh": "你会怎样跟进？",
+            "coach_hint": "给出负责人和时间。",
+        },
+        "player_action": {
+            "choice_id": "custom-response",
+            "text": "我会今日确认负责人，听朝十一点前更新。",
+            "input_kind": "free",
+        },
+        "state": {
+            "trust": 50,
+            "professionalism": 50,
+            "language": 50,
+            "culture": 50,
+        },
+        "fallback": {
+            "npc_line_yue": "好，你跟住呢个时间更新。",
+            "npc_line_zh": "好，你按这个时间更新。",
+            "coach_feedback": "负责人和更新时间都清楚。",
+            "delta": {
+                "trust": 1,
+                "professionalism": 1,
+                "language": 1,
+                "culture": 1,
+            },
+        },
+    }
+
+
 @pytest.mark.asyncio
 async def test_public_budget_enforces_global_and_client_limits(tmp_path) -> None:
     budget = PublicApiBudget(
@@ -57,38 +92,7 @@ def test_turn_endpoint_falls_back_after_public_quota_is_exhausted(tmp_path) -> N
             )
         )
     )
-    payload = {
-        "scene": {
-            "id": "quota-check",
-            "speaker": "陈嘉敏",
-            "role": "区域业务总监",
-            "npc_line_yue": "你会点跟进？",
-            "npc_line_zh": "你会怎样跟进？",
-            "coach_hint": "给出负责人和时间。",
-        },
-        "player_action": {
-            "choice_id": "custom-response",
-            "text": "我会今日确认负责人，听朝十一点前更新。",
-            "input_kind": "free",
-        },
-        "state": {
-            "trust": 50,
-            "professionalism": 50,
-            "language": 50,
-            "culture": 50,
-        },
-        "fallback": {
-            "npc_line_yue": "好，你跟住呢个时间更新。",
-            "npc_line_zh": "好，你按这个时间更新。",
-            "coach_feedback": "负责人和更新时间都清楚。",
-            "delta": {
-                "trust": 1,
-                "professionalism": 1,
-                "language": 1,
-                "culture": 1,
-            },
-        },
-    }
+    payload = turn_payload()
 
     assert client.post("/api/game/turn", json=payload).status_code == 200
     exhausted = client.post("/api/game/turn", json=payload)
@@ -96,3 +100,37 @@ def test_turn_endpoint_falls_back_after_public_quota_is_exhausted(tmp_path) -> N
     assert exhausted.json()["detail"]["code"] == "public_budget_exhausted"
     quota = client.get("/api/public/quota").json()
     assert quota["remaining_turns"] == 0
+
+
+def test_public_dual_model_guard_rejects_misconfiguration_without_spending(
+    tmp_path,
+) -> None:
+    client = TestClient(
+        create_app(
+            Settings(
+                _env_file=None,
+                public_ai_budget_cny=0.05,
+                public_ai_estimated_turn_cost_cny=0.05,
+                public_ai_budget_db_path=str(tmp_path / "quota.sqlite3"),
+                public_require_dual_model=True,
+            )
+        )
+    )
+
+    health = client.get("/health")
+    assert health.status_code == 503
+    assert health.json() == {
+        "status": "degraded",
+        "provider": "fallback",
+        "dual_model_ready": False,
+    }
+
+    rejected = client.post("/api/game/turn", json=turn_payload())
+    assert rejected.status_code == 503
+    assert rejected.json()["detail"]["code"] == "dual_model_unavailable"
+
+    quota = client.get("/api/public/quota").json()
+    assert quota["provider"] == "fallback"
+    assert quota["dual_model_ready"] is False
+    assert quota["used_turns"] == 0
+    assert quota["remaining_turns"] == 1

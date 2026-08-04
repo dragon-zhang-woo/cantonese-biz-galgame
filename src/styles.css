@@ -2954,6 +2954,18 @@ button:focus-visible {
   font-size: 1.15rem;
 }
 
+.public-demo-note[data-state="available"] {
+  border-color: rgba(106, 223, 231, 0.48);
+  background: rgba(21, 86, 91, 0.2);
+  box-shadow: inset 0 0 24px rgba(106, 223, 231, 0.05);
+}
+
+.public-demo-note[data-state="exhausted"] svg,
+.public-demo-note[data-state="degraded"] svg,
+.public-demo-note[data-state="misconfigured"] svg {
+  color: var(--gold-400);
+}
+
 .showcase-module {
   display: grid;
   grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);

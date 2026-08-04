@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     public_ai_turns_per_client: int = 5
     public_ai_budget_db_path: str = "data/public_api_budget.sqlite3"
     public_ai_client_hash_salt: str = ""
+    public_require_dual_model: bool = False
     deepseek_api_key: str = ""
     deepseek_model: str = "deepseek-v4-pro"
     deepseek_base_url: str = "https://api.deepseek.com"
